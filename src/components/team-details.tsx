@@ -185,7 +185,7 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
     );
   }
 
-  const totalWages = players.reduce((sum, player) => sum + (player.wage || 0), 0);
+  const totalWages = players.reduce((sum, player) => sum + (player.weekly_wage || 0), 0);
   const averageAge = players.length > 0 ? players.reduce((sum, player) => sum + player.age, 0) / players.length : 0;
   const squadValue = players.reduce((sum, player) => sum + (player.market_value || 0), 0);
 
@@ -379,7 +379,7 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                                   </div>
                                   <div>
                                     <span className="text-gray-500">Wage:</span>
-                                    <span className="font-medium ml-1">{formatCurrency(player.wage || 0)}/w</span>
+                                    <span className="font-medium ml-1">{formatCurrency(player.weekly_wage || 0)}/w</span>
                                   </div>
                                   <div>
                                     <span className="text-gray-500">Goals:</span>
@@ -637,7 +637,7 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                 <CardContent>
                   <div className="space-y-3">
                     {players
-                      .sort((a, b) => (b.wage || 0) - (a.wage || 0))
+                      .sort((a, b) => (b.weekly_wage || 0) - (a.weekly_wage || 0))
                       .slice(0, 5)
                       .map((player, index) => (
                         <div key={player.id} className="flex items-center justify-between">
@@ -652,7 +652,7 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="font-bold">{formatCurrency(player.wage || 0)}</div>
+                            <div className="font-bold">{formatCurrency(player.weekly_wage || 0)}</div>
                             <div className="text-xs text-gray-500">per week</div>
                           </div>
                         </div>
