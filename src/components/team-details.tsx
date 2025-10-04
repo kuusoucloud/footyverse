@@ -457,49 +457,129 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
             )}
 
             {activeTab === 'matches' && (
-              <div className="glass-card p-6">
-                <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-green-400" />
-                  Recent Matches
-                </h3>
-                <div className="space-y-4">
-                  {recentMatches.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Calendar className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                      <p className="text-slate-400">No recent matches</p>
-                    </div>
-                  ) : (
-                    recentMatches.map((match) => (
-                      <div key={match.id} className="glass-row p-4 rounded-lg">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-4">
-                            <div className="text-sm text-slate-400">
-                              {new Date(match.match_date).toLocaleDateString()}
+              <div className="space-y-6">
+                {/* Upcoming Fixtures */}
+                <div className="glass-card p-6">
+                  <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-blue-400" />
+                    Upcoming Fixtures
+                  </h3>
+                  <div className="space-y-4">
+                    {upcomingMatches.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Calendar className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                        <p className="text-slate-400">No upcoming fixtures</p>
+                      </div>
+                    ) : (
+                      upcomingMatches.map((match) => (
+                        <div key={match.id} className="glass-row p-4 rounded-lg">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-4">
+                              <div className="text-sm text-slate-400 min-w-[120px]">
+                                {new Date(match.scheduled_at).toLocaleDateString('en-GB', {
+                                  weekday: 'short',
+                                  day: '2-digit',
+                                  month: 'short',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <img 
+                                  src={match.home_team.logo_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.home_team.name}`}
+                                  alt={match.home_team.name}
+                                  className="w-6 h-6 rounded"
+                                />
+                                <span className="text-white font-medium">
+                                  {match.home_team.name}
+                                </span>
+                                <span className="text-slate-400 mx-2">vs</span>
+                                <img 
+                                  src={match.away_team.logo_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.away_team.name}`}
+                                  alt={match.away_team.name}
+                                  className="w-6 h-6 rounded"
+                                />
+                                <span className="text-white font-medium">
+                                  {match.away_team.name}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-white font-medium">
-                                {match.home_team.name}
-                              </span>
-                              <span className="text-slate-400">vs</span>
-                              <span className="text-white font-medium">
-                                {match.away_team.name}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-bold text-white">
-                              {match.home_score} - {match.away_score}
-                            </div>
-                            <div className={`text-xs ${
-                              match.status === 'completed' ? 'text-slate-400' : 'text-green-400'
-                            }`}>
-                              {match.status}
+                            <div className="text-right">
+                              <div className={`text-sm font-medium ${ 
+                                match.status === 'live' ? 'text-green-400' : 'text-slate-400'
+                              }`}>
+                                {match.status === 'live' ? 'LIVE' : 'Scheduled'}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                {match.home_team_id === teamId ? 'Home' : 'Away'}
+                              </div>
                             </div>
                           </div>
                         </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Recent Matches */}
+                <div className="glass-card p-6">
+                  <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-green-400" />
+                    Recent Results
+                  </h3>
+                  <div className="space-y-4">
+                    {recentMatches.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Calendar className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                        <p className="text-slate-400">No recent matches</p>
                       </div>
-                    ))
-                  )}
+                    ) : (
+                      recentMatches.map((match) => {
+                        const isHome = match.home_team_id === teamId;
+                        const teamScore = isHome ? match.home_score : match.away_score;
+                        const opponentScore = isHome ? match.away_score : match.home_score;
+                        const opponent = isHome ? match.away_team : match.home_team;
+                        const result = teamScore > opponentScore ? 'W' : teamScore < opponentScore ? 'L' : 'D';
+                        
+                        return (
+                          <div key={match.id} className="glass-row p-4 rounded-lg">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-4">
+                                <div className="text-sm text-slate-400 min-w-[100px]">
+                                  {new Date(match.scheduled_at).toLocaleDateString('en-GB', {
+                                    day: '2-digit',
+                                    month: 'short'
+                                  })}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <img 
+                                    src={opponent.logo_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${opponent.name}`}
+                                    alt={opponent.name}
+                                    className="w-6 h-6 rounded"
+                                  />
+                                  <span className="text-white font-medium">
+                                    {isHome ? 'vs' : '@'} {opponent.name}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-right flex items-center gap-3">
+                                <div className="font-bold text-white">
+                                  {teamScore} - {opponentScore}
+                                </div>
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                  result === 'W' ? 'bg-green-500 text-white' :
+                                  result === 'L' ? 'bg-red-500 text-white' :
+                                  'bg-yellow-500 text-black'
+                                }`}>
+                                  {result}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
             )}
