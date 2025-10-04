@@ -616,6 +616,7 @@ export type Database = {
           contract_end: string | null
           contract_expires: string | null
           contract_length: number | null
+          contract_years_remaining: number | null
           created_at: string | null
           current_elo: number
           foot: string
@@ -649,6 +650,7 @@ export type Database = {
           contract_end?: string | null
           contract_expires?: string | null
           contract_length?: number | null
+          contract_years_remaining?: number | null
           created_at?: string | null
           current_elo?: number
           foot?: string
@@ -682,6 +684,7 @@ export type Database = {
           contract_end?: string | null
           contract_expires?: string | null
           contract_length?: number | null
+          contract_years_remaining?: number | null
           created_at?: string | null
           current_elo?: number
           foot?: string

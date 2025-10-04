@@ -734,9 +734,9 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Market Value:</span>
+                      <span className="text-gray-600">Years Remaining:</span>
                       <span className="font-bold text-blue-600">
-                        {formatCurrency(displayPlayer.market_value || 0)}
+                        {displayPlayer.contract_years_remaining || 0} year{(displayPlayer.contract_years_remaining || 0) !== 1 ? 's' : ''}
                       </span>
                     </div>
                     <Separator />
@@ -768,10 +768,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
                   <div className="space-y-4">
                     <div className="text-center">
                       <div className="text-3xl font-bold text-blue-600">
-                        {displayPlayer.contract_end ? 
-                          Math.max(0, Math.ceil((new Date(displayPlayer.contract_end).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24 * 365.25))) 
-                          : 0
-                        }
+                        {displayPlayer.contract_years_remaining || 0}
                       </div>
                       <div className="text-sm text-gray-500">Years Remaining</div>
                     </div>
@@ -780,15 +777,22 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
                       <div className="flex justify-between">
                         <span className="text-gray-600">Status:</span>
                         <Badge variant={
-                          displayPlayer.contract_end && new Date(displayPlayer.contract_end) < new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) 
+                          (displayPlayer.contract_years_remaining || 0) <= 1 
                             ? 'destructive' 
                             : 'secondary'
                         }>
-                          {displayPlayer.contract_end && new Date(displayPlayer.contract_end) < new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) 
+                          {(displayPlayer.contract_years_remaining || 0) <= 1 
                             ? 'Expiring Soon' 
                             : 'Secure'
                           }
                         </Badge>
+                      </div>
+                      
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Contract Length:</span>
+                        <span className="font-medium">
+                          {displayPlayer.contract_years_remaining || 0} year{(displayPlayer.contract_years_remaining || 0) !== 1 ? 's' : ''} left
+                        </span>
                       </div>
                       
                       <div className="flex justify-between">
