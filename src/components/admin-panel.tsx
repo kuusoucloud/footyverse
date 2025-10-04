@@ -32,6 +32,47 @@ export default function AdminPanel() {
   const [wealthStats, setWealthStats] = useState<any>({});
   const supabase = createClient();
 
+  const fetchStats = async () => {
+    try {
+      const [teamsRes, playersRes, fixturesRes, matchesRes, wealthRes] = await Promise.all([
+        supabase.from('teams').select('id'),
+        supabase.from('players').select('id'),
+        supabase.from('fixtures').select('id'),
+        supabase.from('matches').select('id').eq('status', 'live'),
+        supabase.from('teams').select('wealth_category, transfer_budget, tier').order('transfer_budget', { ascending: false })
+      ]);
+
+      setStats({
+        teams: teamsRes.data?.length || 0,
+        players: playersRes.data?.length || 0,
+        fixtures: fixturesRes.data?.length || 0,
+        liveMatches: matchesRes.data?.length || 0
+      });
+
+      // Process wealth statistics
+      if (wealthRes.data) {
+        const wealthBreakdown = wealthRes.data.reduce((acc: any, team: any) => {
+          const category = team.wealth_category || 'unknown';
+          if (!acc[category]) {
+            acc[category] = { count: 0, totalBudget: 0, avgBudget: 0 };
+          }
+          acc[category].count++;
+          acc[category].totalBudget += team.transfer_budget || 0;
+          return acc;
+        }, {});
+
+        // Calculate averages
+        Object.keys(wealthBreakdown).forEach(category => {
+          wealthBreakdown[category].avgBudget = Math.floor(wealthBreakdown[category].totalBudget / wealthBreakdown[category].count);
+        });
+
+        setWealthStats(wealthBreakdown);
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
   useEffect(() => {
     checkSystemStatus();
     checkOrchestratorStatus();
