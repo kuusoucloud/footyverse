@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import PlayerDetails from '@/components/player-details';
 import { 
   ArrowLeft,
   Users, 
@@ -37,6 +38,7 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
   const [recentMatches, setRecentMatches] = useState<any[]>([]);
   const [upcomingMatches, setUpcomingMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTeamData = async () => {
@@ -153,6 +155,16 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  // If a player is selected, show the player details page
+  if (selectedPlayerId) {
+    return (
+      <PlayerDetails 
+        playerId={selectedPlayerId} 
+        onBack={() => setSelectedPlayerId(null)} 
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -347,14 +359,18 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                           {positionPlayers.map((player) => {
                             const form = getFormRating(player.form_rating || 5);
                             return (
-                              <div key={player.id} className="bg-white rounded-lg p-4 border hover:shadow-md transition-shadow">
+                              <div 
+                                key={player.id} 
+                                className="bg-white rounded-lg p-4 border hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group"
+                                onClick={() => setSelectedPlayerId(player.id)}
+                              >
                                 <div className="flex items-start justify-between mb-2">
                                   <div className="flex items-center gap-3">
                                     <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
                                       {player.shirt_number || '?'}
                                     </div>
                                     <div>
-                                      <h4 className="font-semibold">{player.name}</h4>
+                                      <h4 className="font-semibold group-hover:text-blue-600 transition-colors">{player.name}</h4>
                                       <p className="text-sm text-gray-600">Age: {player.age}</p>
                                     </div>
                                   </div>
@@ -405,6 +421,11 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                                     {player.injury_status}
                                   </Badge>
                                 )}
+
+                                {/* Click indicator */}
+                                <div className="mt-2 text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  Click to view player details →
+                                </div>
                               </div>
                             );
                           })}
@@ -640,14 +661,18 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                       .sort((a, b) => (b.weekly_wage || 0) - (a.weekly_wage || 0))
                       .slice(0, 5)
                       .map((player, index) => (
-                        <div key={player.id} className="flex items-center justify-between">
+                        <div 
+                          key={player.id} 
+                          className="flex items-center justify-between hover:bg-gray-50 p-2 rounded cursor-pointer transition-colors"
+                          onClick={() => setSelectedPlayerId(player.id)}
+                        >
                           <div className="flex items-center gap-2">
                             <div className="flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-700 rounded-full text-xs font-bold">
                               {player.shirt_number || '?'}
                             </div>
                             <span className="text-sm font-medium">#{index + 1}</span>
                             <div>
-                              <div className="font-medium">{player.name}</div>
+                              <div className="font-medium hover:text-blue-600 transition-colors">{player.name}</div>
                               <div className="text-xs text-gray-500">{player.position}</div>
                             </div>
                           </div>
