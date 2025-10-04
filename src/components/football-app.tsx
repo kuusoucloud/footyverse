@@ -39,7 +39,7 @@ export default function FootballApp() {
             ← Back to Matches
           </Button>
         </div>
-        <MatchViewer3D match={selectedMatch} />
+        <MatchViewer3D fixtureId={selectedMatch.id} />
       </div>
     );
   }
