@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Play, Trophy, Calendar, TrendingUp } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import MatchPreview from './match-preview';
 
 interface Fixture {
   id: string;
@@ -192,6 +193,7 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
   const [upcomingMatches, setUpcomingMatches] = useState<Fixture[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [debugInfo, setDebugInfo] = useState<string>('');
+  const [selectedMatch, setSelectedMatch] = useState<Fixture | null>(null);
 
   useEffect(() => {
     loadMatches();
@@ -285,8 +287,27 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
   };
 
   const handleMatchSelect = (fixture: Fixture) => {
-    onMatchSelect(fixture);
+    if (fixture.status === 'live') {
+      onMatchSelect(fixture);
+    } else {
+      // Show match preview for scheduled matches
+      setSelectedMatch(fixture);
+    }
   };
+
+  const handleBackToMatches = () => {
+    setSelectedMatch(null);
+  };
+
+  // Show match preview if a match is selected
+  if (selectedMatch) {
+    return (
+      <MatchPreview 
+        fixture={selectedMatch} 
+        onBack={handleBackToMatches}
+      />
+    );
+  }
 
   if (isLoading) {
     return (
