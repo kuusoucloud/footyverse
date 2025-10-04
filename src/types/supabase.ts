@@ -609,8 +609,11 @@ export type Database = {
       players: {
         Row: {
           age: number
+          appearances: number | null
+          assists: number | null
           attributes: Json
           base_elo: number
+          contract_end: string | null
           contract_expires: string | null
           contract_length: number | null
           created_at: string | null
@@ -618,6 +621,7 @@ export type Database = {
           foot: string
           form: number | null
           form_rating: number | null
+          goals: number | null
           height_cm: number
           id: string
           injury_status: string | null
@@ -626,6 +630,7 @@ export type Database = {
           loyalty: number | null
           market_value: number | null
           name: string
+          nationality: string | null
           position: string
           shirt_number: number | null
           skill_rating: number | null
@@ -637,8 +642,11 @@ export type Database = {
         }
         Insert: {
           age: number
+          appearances?: number | null
+          assists?: number | null
           attributes?: Json
           base_elo?: number
+          contract_end?: string | null
           contract_expires?: string | null
           contract_length?: number | null
           created_at?: string | null
@@ -646,6 +654,7 @@ export type Database = {
           foot?: string
           form?: number | null
           form_rating?: number | null
+          goals?: number | null
           height_cm: number
           id?: string
           injury_status?: string | null
@@ -654,6 +663,7 @@ export type Database = {
           loyalty?: number | null
           market_value?: number | null
           name: string
+          nationality?: string | null
           position: string
           shirt_number?: number | null
           skill_rating?: number | null
@@ -665,8 +675,11 @@ export type Database = {
         }
         Update: {
           age?: number
+          appearances?: number | null
+          assists?: number | null
           attributes?: Json
           base_elo?: number
+          contract_end?: string | null
           contract_expires?: string | null
           contract_length?: number | null
           created_at?: string | null
@@ -674,6 +687,7 @@ export type Database = {
           foot?: string
           form?: number | null
           form_rating?: number | null
+          goals?: number | null
           height_cm?: number
           id?: string
           injury_status?: string | null
@@ -682,6 +696,7 @@ export type Database = {
           loyalty?: number | null
           market_value?: number | null
           name?: string
+          nationality?: string | null
           position?: string
           shirt_number?: number | null
           skill_rating?: number | null

@@ -43,34 +43,34 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
   const [matchStats, setMatchStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Generate random player avatar based on nationality/ethnicity
+  // Generate random MALE player avatar based on nationality/ethnicity
   const getPlayerAvatar = (nationality: string, name: string) => {
     const seed = name.toLowerCase().replace(/\s+/g, '');
-    const avatarStyles = [
-      'adventurer', 'adventurer-neutral', 'avataaars', 'big-ears', 
-      'big-ears-neutral', 'big-smile', 'bottts', 'croodles', 
-      'croodles-neutral', 'fun-emoji', 'icons', 'identicon', 
-      'initials', 'lorelei', 'lorelei-neutral', 'micah', 
-      'miniavs', 'open-peeps', 'personas', 'pixel-art', 
-      'pixel-art-neutral', 'shapes', 'thumbs'
+    
+    // Use male-only avatar styles
+    const maleAvatarStyles = [
+      'adventurer', 'adventurer-neutral', 'big-ears', 'big-ears-neutral', 
+      'bottts', 'croodles', 'croodles-neutral', 'fun-emoji', 'identicon', 
+      'initials', 'micah', 'miniavs', 'pixel-art', 'pixel-art-neutral'
     ];
     
     // Use different avatar styles based on nationality for variety
     const nationalityMap: { [key: string]: string } = {
-      'England': 'avataaars',
-      'Spain': 'adventurer',
-      'France': 'big-smile',
-      'Germany': 'micah',
-      'Italy': 'lorelei',
-      'Brazil': 'fun-emoji',
-      'Argentina': 'personas',
-      'Portugal': 'open-peeps',
+      'England': 'adventurer',
+      'Spain': 'big-ears',
+      'France': 'micah',
+      'Germany': 'adventurer-neutral',
+      'Italy': 'big-ears-neutral',
+      'Brazil': 'croodles',
+      'Argentina': 'croodles-neutral',
+      'Portugal': 'miniavs',
       'Netherlands': 'pixel-art',
-      'Belgium': 'miniavs'
+      'Belgium': 'pixel-art-neutral'
     };
     
-    const style = nationalityMap[nationality] || 'avataaars';
-    return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+    const style = nationalityMap[nationality] || 'adventurer';
+    // Add male-specific options to ensure male avatars
+    return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&gender=male`;
   };
 
   useEffect(() => {
@@ -195,10 +195,28 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
     }
   ];
 
-  // Use mock data if no real data is available
+  // Use real data from database, fallback to mock only if no data exists
   const displayPlayer = player || mockPlayer;
   const displayTeam = currentTeam || mockTeam;
   const displayHistory = playerHistory.length > 0 ? playerHistory : mockHistory;
+
+  // Use real attributes from database or generate based on skill rating
+  const attributes = player?.attributes || {
+    pace: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
+    accel: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
+    stamina: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
+    strength: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
+    passing: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
+    vision: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
+    finishing: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
+    heading: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
+    marking: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
+    tackling: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
+    positioning: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
+    composure: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
+    reflexes: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
+    handling: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10)))
+  };
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) {
@@ -271,7 +289,6 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
   }
 
   const form = getFormRating(displayPlayer.form_rating || 5);
-  const attributes = displayPlayer.attributes || {};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
@@ -305,7 +322,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
                 </Badge>
                 <Badge variant="outline">Age {displayPlayer.age}</Badge>
                 <Badge variant="secondary">{displayPlayer.nationality}</Badge>
-                <Badge variant="outline">Overall: {displayPlayer.overall_rating || 'N/A'}</Badge>
+                <Badge variant="outline">Overall: {displayPlayer.skill_rating || 'N/A'}</Badge>
               </div>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-sm text-gray-600">Current Club:</span>
@@ -480,7 +497,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Overall Rating:</span>
-                        <span className="font-medium">{displayPlayer.overall_rating || 'N/A'}</span>
+                        <span className="font-medium">{displayPlayer.skill_rating || 'N/A'}</span>
                       </div>
                     </div>
                   </div>
