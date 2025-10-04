@@ -598,14 +598,42 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {matchData.home_players.map((player) => (
-                      <PlayerCard 
-                        key={player.id} 
-                        player={player} 
-                        teamColor={matchData.home_team.primary_color}
-                      />
-                    ))}
+                  {/* Starting XI */}
+                  <div className="mb-6">
+                    <h4 className="text-lg font-semibold text-white mb-3 flex items-center">
+                      <Users className="w-4 h-4 mr-2" />
+                      Starting XI
+                    </h4>
+                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                      {matchData.home_players.slice(0, 11).map((player) => (
+                        <PlayerCard 
+                          key={player.id} 
+                          player={player} 
+                          teamColor={matchData.home_team.primary_color}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Substitutes */}
+                  <div>
+                    <h4 className="text-lg font-semibold text-white mb-3 flex items-center">
+                      <Activity className="w-4 h-4 mr-2" />
+                      Substitutes (9)
+                    </h4>
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {matchData.home_players.slice(11, 20).map((player) => (
+                        <div key={player.id} className="relative">
+                          <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs px-1.5 py-0.5 rounded-full z-10">
+                            SUB
+                          </div>
+                          <PlayerCard 
+                            player={player} 
+                            teamColor={matchData.home_team.primary_color}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -619,14 +647,42 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {matchData.away_players.map((player) => (
-                      <PlayerCard 
-                        key={player.id} 
-                        player={player} 
-                        teamColor={matchData.away_team.primary_color}
-                      />
-                    ))}
+                  {/* Starting XI */}
+                  <div className="mb-6">
+                    <h4 className="text-lg font-semibold text-white mb-3 flex items-center">
+                      <Users className="w-4 h-4 mr-2" />
+                      Starting XI
+                    </h4>
+                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                      {matchData.away_players.slice(0, 11).map((player) => (
+                        <PlayerCard 
+                          key={player.id} 
+                          player={player} 
+                          teamColor={matchData.away_team.primary_color}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Substitutes */}
+                  <div>
+                    <h4 className="text-lg font-semibold text-white mb-3 flex items-center">
+                      <Activity className="w-4 h-4 mr-2" />
+                      Substitutes (9)
+                    </h4>
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {matchData.away_players.slice(11, 20).map((player) => (
+                        <div key={player.id} className="relative">
+                          <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs px-1.5 py-0.5 rounded-full z-10">
+                            SUB
+                          </div>
+                          <PlayerCard 
+                            player={player} 
+                            teamColor={matchData.away_team.primary_color}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -652,7 +708,7 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-slate-400">Squad Size</span>
-                      <span className="text-white font-bold">{matchData.home_players.length}</span>
+                      <span className="text-white font-bold">{matchData.home_players.length} (11 + {Math.min(matchData.home_players.length - 11, 9)} subs)</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-slate-400">Average Age</span>
@@ -693,7 +749,7 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-slate-400">Squad Size</span>
-                      <span className="text-white font-bold">{matchData.away_players.length}</span>
+                      <span className="text-white font-bold">{matchData.away_players.length} (11 + {Math.min(matchData.away_players.length - 11, 9)} subs)</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-slate-400">Average Age</span>
