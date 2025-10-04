@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { Twitter, Linkedin, Github } from 'lucide-react';
+import Link from "next/link";
+import { Twitter, Linkedin, Github } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -8,56 +8,124 @@ export default function Footer() {
     <footer className="bg-gray-50 border-t border-gray-100">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-          {/* Product Column */}
+          {/* Matches Column */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Product</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">Matches</h3>
             <ul className="space-y-2">
-              <li><Link href="#features" className="text-gray-600 hover:text-blue-600">Features</Link></li>
-              <li><Link href="#pricing" className="text-gray-600 hover:text-blue-600">Pricing</Link></li>
-              <li><Link href="/dashboard" className="text-gray-600 hover:text-blue-600">Dashboard</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">API</Link></li>
+              <li>
+                <Link
+                  href="/dashboard"
+                  className="text-gray-600 hover:text-green-600"
+                >
+                  Live Matches
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-gray-600 hover:text-green-600">
+                  Scheduled
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-gray-600 hover:text-green-600">
+                  Results
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-gray-600 hover:text-green-600">
+                  Highlights
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Company Column */}
+          {/* Leagues Column */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Company</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">Leagues</h3>
             <ul className="space-y-2">
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">About</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Blog</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Careers</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Press</Link></li>
+              <li>
+                <Link href="#" className="text-gray-600 hover:text-green-600">
+                  Premier Division
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-gray-600 hover:text-green-600">
+                  Championship
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-gray-600 hover:text-green-600">
+                  League One
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-gray-600 hover:text-green-600">
+                  All Leagues
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Resources Column */}
+          {/* Features Column */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Resources</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">Features</h3>
             <ul className="space-y-2">
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Documentation</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Help Center</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Community</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Status</Link></li>
+              <li>
+                <Link href="#" className="text-gray-600 hover:text-green-600">
+                  3D Viewer
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-gray-600 hover:text-green-600">
+                  Live Stats
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-gray-600 hover:text-green-600">
+                  Team Analytics
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-gray-600 hover:text-green-600">
+                  Betting Odds
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Legal Column */}
+          {/* Support Column */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-4">Legal</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">Support</h3>
             <ul className="space-y-2">
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Privacy</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Terms</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Security</Link></li>
-              <li><Link href="#" className="text-gray-600 hover:text-blue-600">Cookies</Link></li>
+              <li>
+                <Link href="#" className="text-gray-600 hover:text-green-600">
+                  Help Center
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-gray-600 hover:text-green-600">
+                  Contact
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-gray-600 hover:text-green-600">
+                  Privacy
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="text-gray-600 hover:text-green-600">
+                  Terms
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
 
         <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-gray-200">
-          <div className="text-gray-600 mb-4 md:mb-0">
-            © {currentYear} Your Company. All rights reserved.
+          <div className="text-gray-600 mb-4 md:mb-0 flex items-center gap-2">
+            <span className="text-lg">⚽</span>© {currentYear} Football 3D. All
+            rights reserved.
           </div>
-          
+
           <div className="flex space-x-6">
             <a href="#" className="text-gray-400 hover:text-gray-500">
               <span className="sr-only">Twitter</span>
