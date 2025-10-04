@@ -29,6 +29,8 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
   const [selectedTier, setSelectedTier] = useState(1);
   const [isConnected, setIsConnected] = useState(false);
   const [seasonProgress, setSeasonProgress] = useState<any[]>([]);
+  const [globalSeason, setGlobalSeason] = useState<any>(null);
+  const [activeInjuries, setActiveInjuries] = useState<any[]>([]);
 
   // Server-side heartbeat to trigger orchestration
   useEffect(() => {
@@ -57,10 +59,10 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get basic stats, standings, and season progression
-        const [teamsRes, playersRes, fixturesRes, standingsRes, transfersRes, seasonRes] = await Promise.all([
+        // Get basic stats, standings, season progression, and global season info
+        const [teamsRes, playersRes, fixturesRes, standingsRes, transfersRes, seasonRes, globalSeasonRes, injuriesRes] = await Promise.all([
           supabase.from('teams').select('id'),
-          supabase.from('players').select('id'),
+          supabase.from('players').select('id, injury_status'),
           supabase.from('fixtures').select(`
             *,
             home_team:home_team_id(name, logo_url, primary_color),
@@ -76,19 +78,33 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
             from_team:from_team_id(name, logo_url, primary_color),
             to_team:to_team_id(name, logo_url, primary_color)
           `).order('created_at', { ascending: false }).limit(20),
-          supabase.from('season_progression').select('*').eq('season_status', 'active').order('tier')
+          supabase.from('season_progression').select('*').eq('season_status', 'active').order('tier'),
+          supabase.from('global_season_status').select('*').eq('season_status', 'active').single(),
+          supabase.from('player_injuries').select('id, severity, player:players(name, team:teams(name))').eq('is_active', true).limit(50)
         ]);
+
+        const playerStats = {
+          total: playersRes.data?.length || 0,
+          fit: playersRes.data?.filter(p => p.injury_status === 'fit').length || 0,
+          injured: playersRes.data?.filter(p => p.injury_status === 'injured').length || 0,
+          retired: playersRes.data?.filter(p => p.injury_status === 'retired').length || 0
+        };
 
         setStats({
           teams: teamsRes.data?.length || 0,
-          players: playersRes.data?.length || 0,
-          liveMatches: fixturesRes.data?.length || 0
+          players: playerStats.total,
+          liveMatches: fixturesRes.data?.length || 0,
+          fitPlayers: playerStats.fit,
+          injuredPlayers: playerStats.injured,
+          retiredPlayers: playerStats.retired
         });
 
         setLiveMatches(fixturesRes.data || []);
         setStandings(standingsRes.data || []);
         setRecentTransfers(transfersRes.data || []);
         setSeasonProgress(seasonRes.data || []);
+        setGlobalSeason(globalSeasonRes.data || null);
+        setActiveInjuries(injuriesRes.data || []);
         setIsConnected(true);
 
       } catch (error) {
@@ -207,7 +223,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Teams</CardTitle>
@@ -226,7 +242,16 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.players}</div>
-              <p className="text-xs text-muted-foreground">Active players</p>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-green-600">Fit:</span>
+                  <span>{stats.fitPlayers}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-red-600">Injured:</span>
+                  <span>{stats.injuredPlayers}</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -236,35 +261,158 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
               <Trophy className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">{stats.liveMatches}</div>
+              <div className="text-2xl font-bold">{stats.liveMatches}</div>
               <p className="text-xs text-muted-foreground">Currently playing</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Server Runs</CardTitle>
-              <RotateCcw className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Global Season</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{orchestrationStatus.run_count || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                {orchestrationStatus.last_run ? formatTimeAgo(orchestrationStatus.last_run) : 'Never'}
-              </p>
+              <div className="text-2xl font-bold">
+                {globalSeason?.season_number || 1}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {globalSeason?.tiers_completed || 0}/{globalSeason?.total_tiers || 5} tiers complete
+              </div>
+              {globalSeason?.tiers_completed >= globalSeason?.total_tiers && (
+                <Badge variant="destructive" className="mt-1 text-xs">
+                  Promotion Phase
+                </Badge>
+              )}
             </CardContent>
           </Card>
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="matches">Live Matches</TabsTrigger>
             <TabsTrigger value="standings">Standings</TabsTrigger>
             <TabsTrigger value="transfers">Transfers</TabsTrigger>
             <TabsTrigger value="seasons">Seasons</TabsTrigger>
+            <TabsTrigger value="injuries">Injuries</TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Teams</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.teams}</div>
+                  <p className="text-xs text-muted-foreground">Across 5 tiers</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Players</CardTitle>
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.players}</div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-green-600">Fit:</span>
+                      <span>{stats.fitPlayers}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-red-600">Injured:</span>
+                      <span>{stats.injuredPlayers}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Live Matches</CardTitle>
+                  <Trophy className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.liveMatches}</div>
+                  <p className="text-xs text-muted-foreground">Currently playing</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Global Season</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {globalSeason?.season_number || 1}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {globalSeason?.tiers_completed || 0}/{globalSeason?.total_tiers || 5} tiers complete
+                  </div>
+                  {globalSeason?.tiers_completed >= globalSeason?.total_tiers && (
+                    <Badge variant="destructive" className="mt-1 text-xs">
+                      Promotion Phase
+                    </Badge>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Global Season Status */}
+            {globalSeason && (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    Global Season {globalSeason.season_number} Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span>Season Status:</span>
+                      <Badge variant={
+                        globalSeason.season_status === 'active' ? 'secondary' :
+                        globalSeason.season_status === 'promotion_phase' ? 'destructive' : 'default'
+                      }>
+                        {globalSeason.season_status.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Tiers Completed:</span>
+                        <span>{globalSeason.tiers_completed}/{globalSeason.total_tiers}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${(globalSeason.tiers_completed / globalSeason.total_tiers) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    {globalSeason.tiers_completed >= globalSeason.total_tiers && (
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div className="flex items-center gap-2 text-yellow-800">
+                          <AlertCircle className="w-4 h-4" />
+                          <span className="font-semibold">Season Ending!</span>
+                        </div>
+                        <div className="text-sm text-yellow-700 mt-1">
+                          All tiers have completed their matches. Promotion/relegation will be processed automatically.
+                          Top 3 teams from each tier (except Tier 1) will be promoted, bottom 3 will be relegated.
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -807,6 +955,113 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
                     <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>No active seasons found</p>
                     <p className="text-sm">Server will initialize seasons automatically</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="injuries" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5" />
+                  Active Injuries
+                </CardTitle>
+                <CardDescription>
+                  Current player injuries across all teams. Players recover automatically based on injury severity.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {activeInjuries.length > 0 ? (
+                  <div className="space-y-4">
+                    {/* Injury Summary */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                      <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                        <div className="text-sm text-green-600">Minor Injuries</div>
+                        <div className="text-xl font-bold text-green-800">
+                          {activeInjuries.filter(i => i.severity === 'minor').length}
+                        </div>
+                        <div className="text-xs text-green-600">1-3 weeks</div>
+                      </div>
+                      <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                        <div className="text-sm text-yellow-600">Moderate Injuries</div>
+                        <div className="text-xl font-bold text-yellow-800">
+                          {activeInjuries.filter(i => i.severity === 'moderate').length}
+                        </div>
+                        <div className="text-xs text-yellow-600">3-6 weeks</div>
+                      </div>
+                      <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
+                        <div className="text-sm text-orange-600">Major Injuries</div>
+                        <div className="text-xl font-bold text-orange-800">
+                          {activeInjuries.filter(i => i.severity === 'major').length}
+                        </div>
+                        <div className="text-xs text-orange-600">6-18 weeks</div>
+                      </div>
+                      <div className="bg-red-50 rounded-lg p-3 border border-red-200">
+                        <div className="text-sm text-red-600">Career Ending</div>
+                        <div className="text-xl font-bold text-red-800">
+                          {activeInjuries.filter(i => i.severity === 'career_ending').length}
+                        </div>
+                        <div className="text-xs text-red-600">Retirement</div>
+                      </div>
+                    </div>
+
+                    {/* Injury List */}
+                    <div className="space-y-3">
+                      {activeInjuries.slice(0, 20).map((injury) => (
+                        <div key={injury.id} className={`rounded-lg p-4 border ${
+                          injury.severity === 'minor' ? 'bg-green-50 border-green-200' :
+                          injury.severity === 'moderate' ? 'bg-yellow-50 border-yellow-200' :
+                          injury.severity === 'major' ? 'bg-orange-50 border-orange-200' :
+                          'bg-red-50 border-red-200'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span className="text-sm font-bold text-gray-600">
+                                  {injury.player?.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'P'}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="font-semibold text-gray-800">
+                                  {injury.player?.name || 'Unknown Player'}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  {injury.player?.team?.name || 'Unknown Team'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="text-right">
+                              <Badge variant={
+                                injury.severity === 'minor' ? 'secondary' :
+                                injury.severity === 'moderate' ? 'default' :
+                                injury.severity === 'major' ? 'destructive' :
+                                'destructive'
+                              }>
+                                {injury.severity.replace('_', ' ').toUpperCase()}
+                              </Badge>
+                              <div className="text-xs text-gray-500 mt-1">
+                                Expected return: {new Date(injury.expected_return_date).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {activeInjuries.length > 20 && (
+                      <div className="text-center py-4 text-gray-500">
+                        <p>Showing 20 of {activeInjuries.length} active injuries</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No active injuries</p>
+                    <p className="text-sm">All players are currently fit</p>
                   </div>
                 )}
               </CardContent>

@@ -1,10 +1,11 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders, createResponse, createErrorResponse } from "@shared/cors.ts";
-import { MatchSimulator } from "@shared/match-simulator.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { corsHeaders } from "@shared/cors.ts";
+import { simulateMatch, processInjuryRecoveries, getTeamInjuryReport } from "@shared/match-simulator.ts";
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_KEY') ?? ''
+)
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -12,117 +13,194 @@ Deno.serve(async (req) => {
   }
 
   try {
-    if (req.method === 'POST') {
-      const { fixture_id } = await req.json();
+    const { match_id, action } = await req.json().catch(() => ({ match_id: null, action: 'simulate' }));
 
-      // Get fixture details
-      const { data: fixture, error: fixtureError } = await supabase
-        .from('fixtures')
-        .select(`
-          *,
-          home_team:teams!fixtures_home_team_id_fkey(*),
-          away_team:teams!fixtures_away_team_id_fkey(*)
-        `)
-        .eq('id', fixture_id)
-        .single();
-
-      if (fixtureError) throw fixtureError;
-
-      // Get players for both teams
-      const { data: homePlayers, error: homeError } = await supabase
-        .from('players')
-        .select('*')
-        .eq('team_id', fixture.home_team_id)
-        .limit(11);
-
-      const { data: awayPlayers, error: awayError } = await supabase
-        .from('players')
-        .select('*')
-        .eq('team_id', fixture.away_team_id)
-        .limit(11);
-
-      if (homeError || awayError) throw homeError || awayError;
-
-      // Initialize match simulator
-      const simulator = new MatchSimulator(
-        homePlayers || [],
-        awayPlayers || [],
-        Date.now()
-      );
-
-      // Create match channel for real-time updates
-      const channel = supabase.channel(`match_${fixture_id}`);
-
-      // Simulation loop
-      const simulationInterval = setInterval(async () => {
-        try {
-          const matchState = simulator.simulateStep(0.1); // 10 FPS
-          
-          // Broadcast match state
-          await channel.send({
-            type: 'broadcast',
-            event: 'match_tick',
-            payload: matchState
-          });
-
-          // Check for events
-          const events = simulator.getEvents();
-          if (events.length > 0) {
-            const latestEvent = events[events.length - 1];
-            await channel.send({
-              type: 'broadcast',
-              event: 'match_event',
-              payload: latestEvent
-            });
-          }
-
-          // Check if match is finished
-          if (simulator.isMatchFinished()) {
-            clearInterval(simulationInterval);
-            
-            // Update fixture status
-            await supabase
-              .from('fixtures')
-              .update({ 
-                status: 'finished',
-                home_score: matchState.score[0],
-                away_score: matchState.score[1]
-              })
-              .eq('id', fixture_id);
-
-            // Send final result
-            await channel.send({
-              type: 'broadcast',
-              event: 'match_final',
-              payload: {
-                fixture_id,
-                final_score: matchState.score,
-                events: events
-              }
-            });
-
-            // Unsubscribe channel
-            await supabase.removeChannel(channel);
-          }
-        } catch (error) {
-          console.error('Simulation error:', error);
-          clearInterval(simulationInterval);
-        }
-      }, 100); // 10 FPS
-
-      // Subscribe to channel
-      await channel.subscribe();
-
-      return createResponse({ 
-        message: 'Match simulation started',
-        fixture_id,
-        channel: `match_${fixture_id}`
+    if (action === 'process_injuries') {
+      const recoveredCount = await processInjuryRecoveries(supabase);
+      return new Response(JSON.stringify({
+        success: true,
+        message: `Processed injury recoveries: ${recoveredCount} players recovered`,
+        recovered_count: recoveredCount
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
       });
     }
 
-    return createErrorResponse('Method not allowed', 405);
+    if (action === 'injury_report' && match_id) {
+      // Get injury report for teams in a match
+      const { data: match } = await supabase
+        .from('matches')
+        .select('home_team_id, away_team_id')
+        .eq('id', match_id)
+        .single();
+
+      if (!match) {
+        throw new Error('Match not found');
+      }
+
+      const [homeReport, awayReport] = await Promise.all([
+        getTeamInjuryReport(supabase, match.home_team_id),
+        getTeamInjuryReport(supabase, match.away_team_id)
+      ]);
+
+      return new Response(JSON.stringify({
+        success: true,
+        home_team_injuries: homeReport,
+        away_team_injuries: awayReport
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
+    if (!match_id) {
+      throw new Error('Match ID is required');
+    }
+
+    // Get match details
+    const { data: match, error: matchError } = await supabase
+      .from('matches')
+      .select(`
+        *,
+        home_team:teams!matches_home_team_id_fkey(*),
+        away_team:teams!matches_away_team_id_fkey(*)
+      `)
+      .eq('id', match_id)
+      .single();
+
+    if (matchError || !match) {
+      throw new Error(`Match not found: ${matchError?.message}`);
+    }
+
+    // Get players for both teams (including injury status)
+    const [homePlayersRes, awayPlayersRes] = await Promise.all([
+      supabase
+        .from('players')
+        .select('*')
+        .eq('team_id', match.home_team_id),
+      supabase
+        .from('players')
+        .select('*')
+        .eq('team_id', match.away_team_id)
+    ]);
+
+    const homePlayers = homePlayersRes.data || [];
+    const awayPlayers = awayPlayersRes.data || [];
+
+    // Check if teams have enough fit players
+    const fitHomePlayers = homePlayers.filter(p => p.injury_status === 'fit');
+    const fitAwayPlayers = awayPlayers.filter(p => p.injury_status === 'fit');
+
+    if (fitHomePlayers.length < 7 || fitAwayPlayers.length < 7) {
+      // Not enough players to play - forfeit or postpone
+      await supabase
+        .from('matches')
+        .update({
+          status: 'postponed',
+          home_score: fitHomePlayers.length < 7 ? 0 : 3,
+          away_score: fitAwayPlayers.length < 7 ? 0 : 3,
+          minute: 90
+        })
+        .eq('id', match_id);
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: `Match postponed due to insufficient players`,
+        home_fit_players: fitHomePlayers.length,
+        away_fit_players: fitAwayPlayers.length
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
+    // Simulate the match with injury system
+    const matchResult = await simulateMatch(
+      supabase,
+      match_id,
+      match.home_team,
+      match.away_team,
+      homePlayers,
+      awayPlayers
+    );
+
+    // Update match with results
+    const { error: updateError } = await supabase
+      .from('matches')
+      .update({
+        status: matchResult.status,
+        home_score: matchResult.home_score,
+        away_score: matchResult.away_score,
+        minute: matchResult.minute,
+        events: matchResult.events
+      })
+      .eq('id', match_id);
+
+    if (updateError) {
+      throw new Error(`Failed to update match: ${updateError.message}`);
+    }
+
+    // Update team standings
+    const homePoints = matchResult.home_score > matchResult.away_score ? 3 : 
+                     matchResult.home_score === matchResult.away_score ? 1 : 0;
+    const awayPoints = matchResult.away_score > matchResult.home_score ? 3 : 
+                     matchResult.away_score === matchResult.home_score ? 1 : 0;
+
+    // Update home team standings
+    await supabase.rpc('sql', {
+      query: `
+        UPDATE team_standings 
+        SET matches_played = matches_played + 1,
+            wins = wins + ${homePoints === 3 ? 1 : 0},
+            draws = draws + ${homePoints === 1 ? 1 : 0},
+            losses = losses + ${homePoints === 0 ? 1 : 0},
+            goals_for = goals_for + ${matchResult.home_score},
+            goals_against = goals_against + ${matchResult.away_score},
+            points = points + ${homePoints}
+        WHERE team_id = '${match.home_team_id}'
+      `
+    });
+
+    // Update away team standings
+    await supabase.rpc('sql', {
+      query: `
+        UPDATE team_standings 
+        SET matches_played = matches_played + 1,
+            wins = wins + ${awayPoints === 3 ? 1 : 0},
+            draws = draws + ${awayPoints === 1 ? 1 : 0},
+            losses = losses + ${awayPoints === 0 ? 1 : 0},
+            goals_for = goals_for + ${matchResult.away_score},
+            goals_against = goals_against + ${matchResult.home_score},
+            points = points + ${awayPoints}
+        WHERE team_id = '${match.away_team_id}'
+      `
+    });
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Match simulated successfully with injury system',
+      match_result: {
+        home_team: match.home_team.name,
+        away_team: match.away_team.name,
+        score: `${matchResult.home_score}-${matchResult.away_score}`,
+        events: matchResult.events.length,
+        injuries: matchResult.injuries.length,
+        injury_details: matchResult.injuries
+      }
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
+
   } catch (error) {
-    console.error('Simulate match error:', error);
-    return createErrorResponse(error.message, 500);
+    console.error('Match simulation error:', error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
   }
 });

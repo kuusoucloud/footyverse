@@ -297,6 +297,42 @@ export type Database = {
           },
         ]
       }
+      global_season_status: {
+        Row: {
+          created_at: string | null
+          id: string
+          promotion_completed: boolean | null
+          season_end_date: string | null
+          season_number: number
+          season_start_date: string | null
+          season_status: string | null
+          tiers_completed: number | null
+          total_tiers: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          promotion_completed?: boolean | null
+          season_end_date?: string | null
+          season_number: number
+          season_start_date?: string | null
+          season_status?: string | null
+          tiers_completed?: number | null
+          total_tiers?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          promotion_completed?: boolean | null
+          season_end_date?: string | null
+          season_number?: number
+          season_start_date?: string | null
+          season_status?: string | null
+          tiers_completed?: number | null
+          total_tiers?: number | null
+        }
+        Relationships: []
+      }
       leagues: {
         Row: {
           created_at: string | null
@@ -616,6 +652,7 @@ export type Database = {
           assists: number | null
           attributes: Json
           base_elo: number
+          career_injuries: number | null
           contract_end: string | null
           contract_expires: string | null
           contract_length: number | null
@@ -628,6 +665,7 @@ export type Database = {
           goals: number | null
           height_cm: number
           id: string
+          injury_return_date: string | null
           injury_status: string | null
           injury_until: string | null
           international_caps: number | null
@@ -636,6 +674,7 @@ export type Database = {
           name: string
           nationality: string | null
           position: string
+          retirement_probability: number | null
           shirt_number: number | null
           skill_rating: number | null
           team_id: string | null
@@ -650,6 +689,7 @@ export type Database = {
           assists?: number | null
           attributes?: Json
           base_elo?: number
+          career_injuries?: number | null
           contract_end?: string | null
           contract_expires?: string | null
           contract_length?: number | null
@@ -662,6 +702,7 @@ export type Database = {
           goals?: number | null
           height_cm: number
           id?: string
+          injury_return_date?: string | null
           injury_status?: string | null
           injury_until?: string | null
           international_caps?: number | null
@@ -670,6 +711,7 @@ export type Database = {
           name: string
           nationality?: string | null
           position: string
+          retirement_probability?: number | null
           shirt_number?: number | null
           skill_rating?: number | null
           team_id?: string | null
@@ -684,6 +726,7 @@ export type Database = {
           assists?: number | null
           attributes?: Json
           base_elo?: number
+          career_injuries?: number | null
           contract_end?: string | null
           contract_expires?: string | null
           contract_length?: number | null
@@ -696,6 +739,7 @@ export type Database = {
           goals?: number | null
           height_cm?: number
           id?: string
+          injury_return_date?: string | null
           injury_status?: string | null
           injury_until?: string | null
           international_caps?: number | null
@@ -704,6 +748,7 @@ export type Database = {
           name?: string
           nationality?: string | null
           position?: string
+          retirement_probability?: number | null
           shirt_number?: number | null
           skill_rating?: number | null
           team_id?: string | null
@@ -760,6 +805,50 @@ export type Database = {
           },
           {
             foreignKeyName: "promotion_relegation_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotion_relegation_log: {
+        Row: {
+          created_at: string | null
+          final_position: number | null
+          id: string
+          movement_type: string
+          new_tier: number
+          old_tier: number
+          points: number | null
+          season_number: number
+          team_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          final_position?: number | null
+          id?: string
+          movement_type: string
+          new_tier: number
+          old_tier: number
+          points?: number | null
+          season_number: number
+          team_id: string
+        }
+        Update: {
+          created_at?: string | null
+          final_position?: number | null
+          id?: string
+          movement_type?: string
+          new_tier?: number
+          old_tier?: number
+          points?: number | null
+          season_number?: number
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_relegation_log_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
@@ -1273,9 +1362,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_match_injury: {
+        Args: { injury_severity?: string; match_id: string; player_id: string }
+        Returns: string
+      }
       calculate_market_value: {
         Args: { player_age: number; player_attributes: Json; team_tier: number }
         Returns: number
+      }
+      check_global_season_completion: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       check_season_completion: {
         Args: { tier_num: number }
@@ -1288,6 +1385,10 @@ export type Database = {
       force_orchestration_run: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      generate_replacement_player: {
+        Args: { retired_player_id: string; team_id: string }
+        Returns: string
       }
       generate_season_fixtures: {
         Args: { p_season_id: string }
@@ -1329,6 +1430,22 @@ export type Database = {
         Returns: undefined
       }
       mark_orchestration_started: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      process_injury_recoveries: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      process_player_retirements: {
+        Args: { season_num: number }
+        Returns: number
+      }
+      process_promotion_relegation: {
+        Args: { season_num: number }
+        Returns: undefined
+      }
+      progress_global_season: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
