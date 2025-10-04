@@ -335,7 +335,11 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                 </h3>
                 <div className="grid gap-4">
                   {players.map((player) => (
-                    <div key={player.id} className="glass-row p-4 rounded-lg">
+                    <div 
+                      key={player.id} 
+                      className="glass-row p-4 rounded-lg cursor-pointer hover:bg-white/10 transition-all duration-300"
+                      onClick={() => setSelectedPlayerId(player.id)}
+                    >
                       <div className="flex justify-between items-center">
                         <div>
                           <div className="font-medium text-white">{player.name}</div>

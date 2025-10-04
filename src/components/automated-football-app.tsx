@@ -439,10 +439,23 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
               ) : (
                 <div className="space-y-4">
                   {liveMatches.map((match) => (
-                    <div key={match.id} className="glass-row p-4 rounded-lg">
+                    <div 
+                      key={match.id} 
+                      className="glass-row p-4 rounded-lg cursor-pointer hover:bg-white/10 transition-all duration-300"
+                      onClick={() => {
+                        // Navigate to team details for home team (you can modify this logic)
+                        onTeamSelect?.(match.home_team_id);
+                      }}
+                    >
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
+                          <div 
+                            className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onTeamSelect?.(match.home_team_id);
+                            }}
+                          >
                             <img 
                               src={match.home_team.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.home_team.name}`}
                               alt={match.home_team.name}
@@ -451,7 +464,13 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                             <span className="font-medium text-white">{match.home_team.name}</span>
                           </div>
                           <span className="text-slate-400">vs</span>
-                          <div className="flex items-center gap-2">
+                          <div 
+                            className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onTeamSelect?.(match.away_team_id);
+                            }}
+                          >
                             <img 
                               src={match.away_team.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.away_team.name}`}
                               alt={match.away_team.name}
