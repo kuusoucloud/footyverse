@@ -441,8 +441,8 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
         away_players: awayPlayersData.data || [],
         home_form: homeForm,
         away_form: awayForm,
-        home_formation: (homeFormationData.data?.formations as Formation) || null,
-        away_formation: (awayFormationData.data?.formations as Formation) || null,
+        home_formation: (homeFormationData.data?.formations as unknown as Formation) || null,
+        away_formation: (awayFormationData.data?.formations as unknown as Formation) || null,
         head_to_head: [] // Could add head-to-head data later
       });
 
