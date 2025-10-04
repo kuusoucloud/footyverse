@@ -32,10 +32,15 @@ export default function CreateAdminPage() {
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
+      
       setStatus(`✅ ${data.message}`);
       setCreated(true);
     } catch (error) {
+      console.error('Full error:', error);
       setStatus(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
