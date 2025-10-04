@@ -627,6 +627,7 @@ export type Database = {
           name: string
           position: string
           shirt_number: number | null
+          skill_rating: number | null
           team_id: string | null
           transfer_listed: boolean | null
           weekly_wage: number | null
@@ -652,6 +653,7 @@ export type Database = {
           name: string
           position: string
           shirt_number?: number | null
+          skill_rating?: number | null
           team_id?: string | null
           transfer_listed?: boolean | null
           weekly_wage?: number | null
@@ -677,6 +679,7 @@ export type Database = {
           name?: string
           position?: string
           shirt_number?: number | null
+          skill_rating?: number | null
           team_id?: string | null
           transfer_listed?: boolean | null
           weekly_wage?: number | null

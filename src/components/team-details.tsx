@@ -134,6 +134,14 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
     return { color: 'text-red-600', icon: <Activity className="w-4 h-4" /> };
   };
 
+  const getSkillRating = (skill: number) => {
+    if (skill >= 80) return { color: 'text-green-600', icon: <Star className="w-4 h-4" />, label: 'Elite' };
+    if (skill >= 70) return { color: 'text-blue-600', icon: <Zap className="w-4 h-4" />, label: 'Excellent' };
+    if (skill >= 60) return { color: 'text-yellow-600', icon: <Shield className="w-4 h-4" />, label: 'Good' };
+    if (skill >= 50) return { color: 'text-orange-600', icon: <Activity className="w-4 h-4" />, label: 'Average' };
+    return { color: 'text-red-600', icon: <Activity className="w-4 h-4" />, label: 'Poor' };
+  };
+
   const getWealthColor = (category: string) => {
     switch (category) {
       case 'mega_rich': return 'bg-purple-100 text-purple-800';
@@ -312,9 +320,17 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                                       <p className="text-sm text-gray-600">Age: {player.age}</p>
                                     </div>
                                   </div>
-                                  <div className={`flex items-center gap-1 ${form.color}`}>
-                                    {form.icon}
-                                    <span className="text-sm font-medium">{player.form_rating || 5}</span>
+                                  <div className="flex items-center gap-3">
+                                    <div className={`flex items-center gap-1 ${form.color}`}>
+                                      {form.icon}
+                                      <span className="text-sm font-medium">{player.form_rating || 5}</span>
+                                    </div>
+                                    {player.skill_rating && (
+                                      <div className={`flex items-center gap-1 ${getSkillRating(player.skill_rating).color}`}>
+                                        {getSkillRating(player.skill_rating).icon}
+                                        <span className="text-sm font-bold">{player.skill_rating}</span>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                                 
@@ -336,6 +352,15 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                                     <span className="font-medium ml-1">{player.assists || 0}</span>
                                   </div>
                                 </div>
+
+                                {player.skill_rating && (
+                                  <div className="mt-2">
+                                    <span className="text-xs text-gray-500">Skill: </span>
+                                    <span className={`text-xs font-medium ${getSkillRating(player.skill_rating).color}`}>
+                                      {getSkillRating(player.skill_rating).label} ({player.skill_rating}/99)
+                                    </span>
+                                  </div>
+                                )}
 
                                 {player.injury_status !== 'fit' && (
                                   <Badge variant="destructive" className="mt-2">
