@@ -320,7 +320,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
                                 className="w-8 h-8 rounded border-2 border-white shadow-md flex items-center justify-center text-xs font-bold text-white"
                                 style={{ backgroundColor: standing.team?.primary_color }}
                               >
-                                {standing.team?.name.split(' ').map(word => word[0]).join('').slice(0, 2)}
+                                {standing.team?.name.split(' ').map((word: string) => word[0]).join('').slice(0, 2)}
                               </div>
                             )}
                             <span className={`font-medium ${onTeamSelect ? 'text-blue-600 hover:text-blue-800' : ''}`}>

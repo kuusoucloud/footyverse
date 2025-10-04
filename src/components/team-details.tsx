@@ -220,7 +220,7 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                 style={{ backgroundColor: team.primary_color }}
               >
                 <span className="text-white font-bold text-xl">
-                  {team.name.split(' ').map(word => word[0]).join('').slice(0, 3)}
+                  {team.name.split(' ').map((word: string) => word[0]).join('').slice(0, 3)}
                 </span>
               </div>
             )}
