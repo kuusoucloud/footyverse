@@ -38,6 +38,112 @@ export type Database = {
         }
         Relationships: []
       }
+      cup_fixtures: {
+        Row: {
+          away_score: number | null
+          away_team_id: string | null
+          created_at: string | null
+          cup_id: string | null
+          home_score: number | null
+          home_team_id: string | null
+          id: string
+          round: string
+          scheduled_at: string | null
+          status: string | null
+          winner_team_id: string | null
+        }
+        Insert: {
+          away_score?: number | null
+          away_team_id?: string | null
+          created_at?: string | null
+          cup_id?: string | null
+          home_score?: number | null
+          home_team_id?: string | null
+          id?: string
+          round: string
+          scheduled_at?: string | null
+          status?: string | null
+          winner_team_id?: string | null
+        }
+        Update: {
+          away_score?: number | null
+          away_team_id?: string | null
+          created_at?: string | null
+          cup_id?: string | null
+          home_score?: number | null
+          home_team_id?: string | null
+          id?: string
+          round?: string
+          scheduled_at?: string | null
+          status?: string | null
+          winner_team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cup_fixtures_away_team_id_fkey"
+            columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cup_fixtures_cup_id_fkey"
+            columns: ["cup_id"]
+            isOneToOne: false
+            referencedRelation: "cups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cup_fixtures_home_team_id_fkey"
+            columns: ["home_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cup_fixtures_winner_team_id_fkey"
+            columns: ["winner_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cups: {
+        Row: {
+          created_at: string | null
+          current_round: string | null
+          id: string
+          name: string
+          season_id: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_round?: string | null
+          id?: string
+          name: string
+          season_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_round?: string | null
+          id?: string
+          name?: string
+          season_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cups_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       elo_history: {
         Row: {
           after_elo: number
@@ -264,6 +370,47 @@ export type Database = {
           },
         ]
       }
+      player_injuries: {
+        Row: {
+          actual_return: string | null
+          created_at: string | null
+          expected_return: string | null
+          id: string
+          injury_type: string
+          occurred_at: string | null
+          player_id: string | null
+          severity: string
+        }
+        Insert: {
+          actual_return?: string | null
+          created_at?: string | null
+          expected_return?: string | null
+          id?: string
+          injury_type: string
+          occurred_at?: string | null
+          player_id?: string | null
+          severity: string
+        }
+        Update: {
+          actual_return?: string | null
+          created_at?: string | null
+          expected_return?: string | null
+          id?: string
+          injury_type?: string
+          occurred_at?: string | null
+          player_id?: string | null
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_injuries_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_match_stats: {
         Row: {
           assists: number
@@ -333,16 +480,62 @@ export type Database = {
           },
         ]
       }
+      player_retirements: {
+        Row: {
+          created_at: string | null
+          final_team_id: string | null
+          id: string
+          player_id: string | null
+          reason: string | null
+          retirement_date: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          final_team_id?: string | null
+          id?: string
+          player_id?: string | null
+          reason?: string | null
+          retirement_date?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          final_team_id?: string | null
+          id?: string
+          player_id?: string | null
+          reason?: string | null
+          retirement_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_retirements_final_team_id_fkey"
+            columns: ["final_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_retirements_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       players: {
         Row: {
           age: number
           attributes: Json
           base_elo: number
+          contract_expires: string | null
           created_at: string | null
           current_elo: number
           foot: string
           height_cm: number
           id: string
+          injury_status: string | null
+          injury_until: string | null
+          market_value: number | null
           name: string
           position: string
           team_id: string | null
@@ -352,11 +545,15 @@ export type Database = {
           age: number
           attributes?: Json
           base_elo?: number
+          contract_expires?: string | null
           created_at?: string | null
           current_elo?: number
           foot?: string
           height_cm: number
           id?: string
+          injury_status?: string | null
+          injury_until?: string | null
+          market_value?: number | null
           name: string
           position: string
           team_id?: string | null
@@ -366,11 +563,15 @@ export type Database = {
           age?: number
           attributes?: Json
           base_elo?: number
+          contract_expires?: string | null
           created_at?: string | null
           current_elo?: number
           foot?: string
           height_cm?: number
           id?: string
+          injury_status?: string | null
+          injury_until?: string | null
+          market_value?: number | null
           name?: string
           position?: string
           team_id?: string | null
@@ -386,11 +587,57 @@ export type Database = {
           },
         ]
       }
+      promotion_relegation: {
+        Row: {
+          created_at: string | null
+          from_tier: number | null
+          id: string
+          season_id: string | null
+          team_id: string | null
+          to_tier: number | null
+          type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          from_tier?: number | null
+          id?: string
+          season_id?: string | null
+          team_id?: string | null
+          to_tier?: number | null
+          type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          from_tier?: number | null
+          id?: string
+          season_id?: string | null
+          team_id?: string | null
+          to_tier?: number | null
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_relegation_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_relegation_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seasons: {
         Row: {
           created_at: string | null
           ended_at: string | null
           id: string
+          is_active: boolean | null
           started_at: string | null
           year: number
         }
@@ -398,6 +645,7 @@ export type Database = {
           created_at?: string | null
           ended_at?: string | null
           id?: string
+          is_active?: boolean | null
           started_at?: string | null
           year: number
         }
@@ -405,6 +653,7 @@ export type Database = {
           created_at?: string | null
           ended_at?: string | null
           id?: string
+          is_active?: boolean | null
           started_at?: string | null
           year?: number
         }
@@ -516,6 +765,68 @@ export type Database = {
         }
         Relationships: []
       }
+      transfers: {
+        Row: {
+          created_at: string | null
+          from_team_id: string | null
+          id: string
+          player_id: string | null
+          season_id: string | null
+          to_team_id: string | null
+          transfer_date: string | null
+          transfer_fee: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          from_team_id?: string | null
+          id?: string
+          player_id?: string | null
+          season_id?: string | null
+          to_team_id?: string | null
+          transfer_date?: string | null
+          transfer_fee?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          from_team_id?: string | null
+          id?: string
+          player_id?: string | null
+          season_id?: string | null
+          to_team_id?: string | null
+          transfer_date?: string | null
+          transfer_fee?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transfers_from_team_id_fkey"
+            columns: ["from_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfers_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfers_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfers_to_team_id_fkey"
+            columns: ["to_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           avatar_url: string | null
@@ -569,16 +880,25 @@ export type Database = {
         Returns: undefined
       }
       update_team_standings: {
-        Args: {
-          p_drawn: number
-          p_goals_against: number
-          p_goals_for: number
-          p_league_id: string
-          p_lost: number
-          p_season_id: string
-          p_team_id: string
-          p_won: number
-        }
+        Args:
+          | {
+              p_drawn: number
+              p_goals_against: number
+              p_goals_for: number
+              p_league_id: string
+              p_lost: number
+              p_season_id: string
+              p_team_id: string
+              p_won: number
+            }
+          | {
+              p_goals_against: number
+              p_goals_for: number
+              p_league_id: string
+              p_result: string
+              p_season_id: string
+              p_team_id: string
+            }
         Returns: undefined
       }
     }

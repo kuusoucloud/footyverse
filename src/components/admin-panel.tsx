@@ -21,6 +21,13 @@ export default function AdminPanel() {
     lastCheck: "",
   });
   const [autoSeeding, setAutoSeeding] = useState(false);
+  const [stats, setStats] = useState({
+    teams: 0,
+    players: 0,
+    fixtures: 0,
+    liveMatches: 0,
+  });
+  const [message, setMessage] = useState("");
   const supabase = createClient();
 
   useEffect(() => {
@@ -286,231 +293,393 @@ export default function AdminPanel() {
     }
   };
 
+  const fetchStats = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "supabase-functions-football-ecosystem",
+        {
+          body: { action: "get_stats" },
+        },
+      );
+
+      if (error) throw error;
+      
+      setStats(data);
+    } catch (error) {
+      console.error("Failed to fetch stats:", error);
+    }
+  };
+
+  const setupCompleteEcosystem = async () => {
+    setLoading(true);
+    setMessage('');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('supabase-functions-football-ecosystem', {
+        body: { action: 'full_setup' }
+      });
+
+      if (error) throw error;
+      
+      setMessage(`✅ Complete football ecosystem created! ${data.teams} teams, ${data.players} players, ${data.fixtures} league fixtures, ${data.cup_fixtures} cup fixtures`);
+      await fetchStats();
+    } catch (error) {
+      console.error('Setup error:', error);
+      setMessage(`❌ Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const simulateMatches = async () => {
+    setLoading(true);
+    setMessage('');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('supabase-functions-football-ecosystem', {
+        body: { action: 'simulate_season' }
+      });
+
+      if (error) throw error;
+      
+      setMessage(`✅ ${data.message} - ${data.matches_simulated} matches completed`);
+      await fetchStats();
+    } catch (error) {
+      console.error('Simulation error:', error);
+      setMessage(`❌ Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const progressSeason = async () => {
+    setLoading(true);
+    setMessage('');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('supabase-functions-football-ecosystem', {
+        body: { action: 'age_players' }
+      });
+
+      if (error) throw error;
+      
+      setMessage(`✅ Season progressed! ${data.players_aged} players aged, ${data.retirements} retirements, ${data.new_injuries} new injuries`);
+      await fetchStats();
+    } catch (error) {
+      console.error('Season progression error:', error);
+      setMessage(`❌ Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">
-            ⚽ Football Universe Control Center
-          </h1>
-          <div className="flex space-x-2">
-            <Badge
-              variant={orchestratorStatus.running ? "destructive" : "secondary"}
-            >
-              {orchestratorStatus.running
-                ? "🔴 ORCHESTRATOR LIVE"
-                : "⚫ ORCHESTRATOR OFF"}
-            </Badge>
-            <Badge
-              variant={
-                systemStatus.liveMatches > 0 ? "destructive" : "secondary"
-              }
-            >
-              {systemStatus.liveMatches > 0
-                ? `⚽ ${systemStatus.liveMatches} LIVE`
-                : "NO LIVE MATCHES"}
-            </Badge>
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">FootyVerse Admin Panel</h1>
+          <p className="text-gray-600">Complete Football Ecosystem Management</p>
+        </div>
+
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="text-lg font-semibold text-gray-700">Teams</h3>
+            <p className="text-2xl font-bold text-blue-600">{stats.teams}</p>
+            <p className="text-sm text-gray-500">Across 5 tiers</p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="text-lg font-semibold text-gray-700">Players</h3>
+            <p className="text-2xl font-bold text-green-600">{stats.players}</p>
+            <p className="text-sm text-gray-500">Active players</p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="text-lg font-semibold text-gray-700">Fixtures</h3>
+            <p className="text-2xl font-bold text-purple-600">{stats.fixtures}</p>
+            <p className="text-sm text-gray-500">League & cup matches</p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4">
+            <h3 className="text-lg font-semibold text-gray-700">Live Matches</h3>
+            <p className="text-2xl font-bold text-red-600">{stats.liveMatches}</p>
+            <p className="text-sm text-gray-500">Currently playing</p>
           </div>
         </div>
 
-        {autoSeeding && (
-          <Card className="mb-6 border-blue-200 bg-blue-50">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span className="text-blue-800 font-medium">
-                  Auto-seeding system and starting 24/7 matches...
-                </span>
+        {/* Main Actions */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Football Ecosystem Management</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Button 
+              onClick={setupCompleteEcosystem}
+              disabled={loading}
+              className="h-20 text-lg"
+              variant="default"
+            >
+              🏗️ Setup Complete Ecosystem
+              <div className="text-sm font-normal mt-1">
+                100 teams, 2300 players, fixtures & cup
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </Button>
+            
+            <Button 
+              onClick={simulateMatches}
+              disabled={loading}
+              className="h-20 text-lg"
+              variant="secondary"
+            >
+              ⚽ Simulate Matches
+              <div className="text-sm font-normal mt-1">
+                Process scheduled fixtures
+              </div>
+            </Button>
+            
+            <Button 
+              onClick={progressSeason}
+              disabled={loading}
+              className="h-20 text-lg"
+              variant="outline"
+            >
+              📅 Progress Season
+              <div className="text-sm font-normal mt-1">
+                Age players, injuries, retirements
+              </div>
+            </Button>
+          </div>
 
-        {/* 24/7 Match Orchestrator Status */}
-        <Card className="mb-8 border-red-200">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <span>🚀 24/7 Match Orchestrator</span>
-              <Badge
-                variant={
-                  orchestratorStatus.running ? "destructive" : "secondary"
-                }
-              >
-                {orchestratorStatus.running ? "RUNNING" : "STOPPED"}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">
-                  {orchestratorStatus.running ? "🔴 LIVE" : "⚫ OFF"}
-                </div>
-                <div className="text-sm text-gray-600">Status</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {orchestratorStatus.activeMatches}
-                </div>
-                <div className="text-sm text-gray-600">Active Matches</div>
-              </div>
-              <div className="text-center">
-                <div className="text-sm font-mono text-gray-600">
-                  {orchestratorStatus.lastCheck}
-                </div>
-                <div className="text-sm text-gray-600">Last Check</div>
-              </div>
-            </div>
-
-            <div className="flex space-x-2">
-              <Button
-                onClick={startOrchestrator}
-                disabled={loading || autoSeeding || orchestratorStatus.running}
-                variant="destructive"
-                size="sm"
-              >
-                🚀 Start 24/7 Matches
-              </Button>
-              <Button
-                onClick={stopOrchestrator}
-                disabled={loading || autoSeeding || !orchestratorStatus.running}
-                variant="outline"
-                size="sm"
-              >
-                ⏹️ Stop Orchestrator
-              </Button>
-              <Button
-                onClick={forceNextMatch}
-                disabled={loading || autoSeeding || !orchestratorStatus.running}
-                variant="secondary"
-                size="sm"
-              >
-                ⚡ Force Next Match
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* System Status */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>📊 System Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  {systemStatus.teams}
-                </div>
-                <div className="text-sm text-gray-600">Teams</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {systemStatus.players}
-                </div>
-                <div className="text-sm text-gray-600">Players</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">
-                  {systemStatus.fixtures}
-                </div>
-                <div className="text-sm text-gray-600">Fixtures</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">
-                  {systemStatus.liveMatches}
-                </div>
-                <div className="text-sm text-gray-600">Live Matches</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+          {/* 24/7 Match Orchestrator Status */}
+          <Card className="mb-8 border-red-200">
             <CardHeader>
-              <CardTitle className="text-sm">Seed Data</CardTitle>
+              <CardTitle className="flex items-center space-x-2">
+                <span>🚀 24/7 Match Orchestrator</span>
+                <Badge
+                  variant={
+                    orchestratorStatus.running ? "destructive" : "secondary"
+                  }
+                >
+                  {orchestratorStatus.running ? "RUNNING" : "STOPPED"}
+                </Badge>
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-gray-600 mb-4">
-                Generate 100 teams with players
-              </p>
-              <Button
-                onClick={seedData}
-                disabled={loading || autoSeeding}
-                className="w-full"
-                size="sm"
-              >
-                Seed Teams & Players
-              </Button>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">
+                    {orchestratorStatus.running ? "🔴 LIVE" : "⚫ OFF"}
+                  </div>
+                  <div className="text-sm text-gray-600">Status</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {orchestratorStatus.activeMatches}
+                  </div>
+                  <div className="text-sm text-gray-600">Active Matches</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-sm font-mono text-gray-600">
+                    {orchestratorStatus.lastCheck}
+                  </div>
+                  <div className="text-sm text-gray-600">Last Check</div>
+                </div>
+              </div>
+
+              <div className="flex space-x-2">
+                <Button
+                  onClick={startOrchestrator}
+                  disabled={loading || autoSeeding || orchestratorStatus.running}
+                  variant="destructive"
+                  size="sm"
+                >
+                  🚀 Start 24/7 Matches
+                </Button>
+                <Button
+                  onClick={stopOrchestrator}
+                  disabled={loading || autoSeeding || !orchestratorStatus.running}
+                  variant="outline"
+                  size="sm"
+                >
+                  ⏹️ Stop Orchestrator
+                </Button>
+                <Button
+                  onClick={forceNextMatch}
+                  disabled={loading || autoSeeding || !orchestratorStatus.running}
+                  variant="secondary"
+                  size="sm"
+                >
+                  ⚡ Force Next Match
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
+          {/* System Status */}
+          <Card className="mb-8">
             <CardHeader>
-              <CardTitle className="text-sm">Generate Fixtures</CardTitle>
+              <CardTitle>📊 System Status</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-gray-600 mb-4">
-                Create league fixtures with odds
-              </p>
-              <Button
-                onClick={generateFixtures}
-                disabled={loading || autoSeeding}
-                className="w-full"
-                size="sm"
-              >
-                Generate Fixtures
-              </Button>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {systemStatus.teams}
+                  </div>
+                  <div className="text-sm text-gray-600">Teams</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {systemStatus.players}
+                  </div>
+                  <div className="text-sm text-gray-600">Players</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {systemStatus.fixtures}
+                  </div>
+                  <div className="text-sm text-gray-600">Fixtures</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">
+                    {systemStatus.liveMatches}
+                  </div>
+                  <div className="text-sm text-gray-600">Live Matches</div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Force Next Match</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-gray-600 mb-4">
-                Manually trigger next match
-              </p>
-              <Button
-                onClick={forceNextMatch}
-                disabled={loading || autoSeeding}
-                className="w-full"
-                variant="destructive"
-                size="sm"
-              >
-                ⚡ Force Match
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Seed Data</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-gray-600 mb-4">
+                  Generate 100 teams with players
+                </p>
+                <Button
+                  onClick={seedData}
+                  disabled={loading || autoSeeding}
+                  className="w-full"
+                  size="sm"
+                >
+                  Seed Teams & Players
+                </Button>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Reset System</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-gray-600 mb-4">
-                Delete all data & stop matches
-              </p>
-              <Button
-                onClick={resetSystem}
-                disabled={loading || autoSeeding}
-                className="w-full"
-                variant="outline"
-                size="sm"
-              >
-                Reset All
-              </Button>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Generate Fixtures</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-gray-600 mb-4">
+                  Create league fixtures with odds
+                </p>
+                <Button
+                  onClick={generateFixtures}
+                  disabled={loading || autoSeeding}
+                  className="w-full"
+                  size="sm"
+                >
+                  Generate Fixtures
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Force Next Match</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-gray-600 mb-4">
+                  Manually trigger next match
+                </p>
+                <Button
+                  onClick={forceNextMatch}
+                  disabled={loading || autoSeeding}
+                  className="w-full"
+                  variant="destructive"
+                  size="sm"
+                >
+                  ⚡ Force Match
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Reset System</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-gray-600 mb-4">
+                  Delete all data & stop matches
+                </p>
+                <Button
+                  onClick={resetSystem}
+                  disabled={loading || autoSeeding}
+                  className="w-full"
+                  variant="outline"
+                  size="sm"
+                >
+                  Reset All
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {status && (
+        {/* System Features */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Ecosystem Features</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-2">🏆 League System</h3>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>• 5-tier league system (100 teams total)</li>
+                <li>• 38 matches per team per season</li>
+                <li>• Automatic promotion/relegation</li>
+                <li>• ELO-based team ratings</li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-2">🏆 Cup Competition</h3>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>• FA Cup style knockout tournament</li>
+                <li>• All teams participate</li>
+                <li>• Single elimination format</li>
+                <li>• Runs parallel to league</li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-2">👥 Player System</h3>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>• 23 players per team (2300 total)</li>
+                <li>• Age progression each season</li>
+                <li>• Injuries and recovery system</li>
+                <li>• Retirement at 35+ years</li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-2">📊 Advanced Features</h3>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>• Market values and contracts</li>
+                <li>• Transfer system</li>
+                <li>• Injury tracking</li>
+                <li>• Season progression automation</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {message && (
           <Card>
             <CardContent className="p-6">
               <div className="font-mono text-sm whitespace-pre-wrap">
-                {status}
+                {message}
               </div>
             </CardContent>
           </Card>
