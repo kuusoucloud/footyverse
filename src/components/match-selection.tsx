@@ -49,6 +49,11 @@ function MatchCard({ fixture, onSelect, isLive = false }: MatchCardProps) {
     });
   };
 
+  // Safety check for null teams
+  if (!fixture.home_team || !fixture.away_team) {
+    return null;
+  }
+
   return (
     <Card className={`hover:shadow-lg transition-all cursor-pointer ${
       isLive ? 'ring-2 ring-red-500 bg-red-50' : 'hover:bg-gray-50'
@@ -61,7 +66,7 @@ function MatchCard({ fixture, onSelect, isLive = false }: MatchCardProps) {
             {isLive ? 'LIVE' : 'SCHEDULED'}
           </Badge>
           <div className="text-sm text-gray-500">
-            Tier {fixture.home_team.tier}
+            Tier {fixture.home_team?.tier || 'N/A'}
             {fixture.sequence_order && ` • #${fixture.sequence_order}`}
           </div>
         </div>
@@ -155,8 +160,14 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
         .order('sequence_order', { ascending: true })
         .limit(5);
 
-      setLiveMatch(liveData?.[0] || null);
-      setUpcomingMatches(upcomingData || []);
+      // Filter out fixtures with null teams
+      const validLiveMatch = liveData?.[0] && liveData[0].home_team && liveData[0].away_team ? liveData[0] : null;
+      const validUpcomingMatches = (upcomingData || []).filter(fixture => 
+        fixture.home_team && fixture.away_team
+      );
+
+      setLiveMatch(validLiveMatch);
+      setUpcomingMatches(validUpcomingMatches);
       setIsLoading(false);
     } catch (error) {
       console.error('Failed to load matches:', error);

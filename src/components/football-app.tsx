@@ -347,34 +347,38 @@ function UpcomingFixtures({ onTeamSelect }: { onTeamSelect?: (teamId: string) =>
                     })}
                   </div>
                   <div className="flex items-center gap-4">
-                    <div 
-                      className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
-                      onClick={() => onTeamSelect?.(fixture.home_team.id)}
-                    >
-                      <img 
-                        src={fixture.home_team.tier === 1 ? fixture.home_team.logo_url : fixture.home_team.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${fixture.home_team.name}`}
-                        alt={fixture.home_team.name}
-                        className="w-8 h-8 rounded"
-                      />
-                      <span className="font-medium text-white">{fixture.home_team.name}</span>
-                    </div>
+                    {fixture.home_team && (
+                      <div 
+                        className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
+                        onClick={() => onTeamSelect?.(fixture.home_team.id)}
+                      >
+                        <img 
+                          src={fixture.home_team.tier === 1 ? fixture.home_team.logo_url : fixture.home_team.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${fixture.home_team.name}`}
+                          alt={fixture.home_team.name}
+                          className="w-8 h-8 rounded"
+                        />
+                        <span className="font-medium text-white">{fixture.home_team.name}</span>
+                      </div>
+                    )}
                     <span className="text-slate-400">vs</span>
-                    <div 
-                      className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
-                      onClick={() => onTeamSelect?.(fixture.away_team.id)}
-                    >
-                      <img 
-                        src={fixture.away_team.tier === 1 ? fixture.away_team.logo_url : fixture.away_team.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${fixture.away_team.name}`}
-                        alt={fixture.away_team.name}
-                        className="w-8 h-8 rounded"
-                      />
-                      <span className="font-medium text-white">{fixture.away_team.name}</span>
-                    </div>
+                    {fixture.away_team && (
+                      <div 
+                        className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
+                        onClick={() => onTeamSelect?.(fixture.away_team.id)}
+                      >
+                        <img 
+                          src={fixture.away_team.tier === 1 ? fixture.away_team.logo_url : fixture.away_team.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${fixture.away_team.name}`}
+                          alt={fixture.away_team.name}
+                          className="w-8 h-8 rounded"
+                        />
+                        <span className="font-medium text-white">{fixture.away_team.name}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-sm text-slate-400">
-                    Tier {fixture.home_team.tier}
+                    Tier {fixture.home_team?.tier || fixture.away_team?.tier || 'N/A'}
                   </div>
                   <div className="text-xs text-slate-500">
                     {fixture.status}
