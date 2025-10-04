@@ -139,8 +139,8 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
   const displayTeam = currentTeam;
   const displayHistory = playerHistory;
 
-  // Use real attributes from database
-  const attributes = player.attributes || {};
+  // Use real attributes from database with null check
+  const attributes = player?.attributes || {};
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) {
