@@ -349,7 +349,7 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
       ]);
 
       // Process form data
-      const processForm = (formData: any[], teamId: string) => {
+      const processForm = (formData: any, teamId: string) => {
         return (formData.data || []).map((match: any) => {
           const isHome = match.home_team_id === teamId;
           const teamScore = isHome ? match.home_score : match.away_score;
