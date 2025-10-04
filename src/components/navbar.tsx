@@ -2,16 +2,38 @@
 
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { createClient } from "@/utils/supabase/server";
-import { signOutAction } from "@/app/actions";
+import { createClient } from "@/utils/supabase/client";
 import { ThemeSwitcher } from "./theme-switcher";
+import { useEffect, useState } from "react";
+import { User } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
 
-export default async function Navbar() {
-  const supabase = await createClient();
+export default function Navbar() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const supabase = createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+    };
+
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase.auth]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/sign-in');
+  };
 
   return (
     <nav className="glass-card border-b border-white/10 sticky top-0 z-50">
@@ -49,20 +71,20 @@ export default async function Navbar() {
 
           <div className="flex items-center space-x-4">
             <ThemeSwitcher />
-            {user ? (
+            {loading ? (
+              <div className="w-20 h-8 bg-slate-700 rounded animate-pulse"></div>
+            ) : user ? (
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-slate-300">
                   Hey, {user.email}!
                 </span>
-                <form action={signOutAction}>
-                  <Button 
-                    type="submit" 
-                    variant="outline"
-                    className="glass-button border-white/20 text-slate-300 hover:text-white hover:bg-white/20"
-                  >
-                    Sign out
-                  </Button>
-                </form>
+                <Button 
+                  onClick={handleSignOut}
+                  variant="outline"
+                  className="glass-button border-white/20 text-slate-300 hover:text-white hover:bg-white/20"
+                >
+                  Sign out
+                </Button>
               </div>
             ) : (
               <div className="flex items-center space-x-2">
