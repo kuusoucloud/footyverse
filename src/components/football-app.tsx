@@ -263,14 +263,19 @@ function UpcomingFixtures({ onTeamSelect }: { onTeamSelect?: (teamId: string) =>
           .from('fixtures')
           .select(`
             *,
-            home_team:teams!fixtures_home_team_id_fkey(id, name, tier, primary_color, logo_url, crest_url),
-            away_team:teams!fixtures_away_team_id_fkey(id, name, tier, primary_color, logo_url, crest_url)
+            home_team:home_team_id(id, name, tier, primary_color, logo_url, crest_url),
+            away_team:away_team_id(id, name, tier, primary_color, logo_url, crest_url)
           `)
           .in('status', ['scheduled'])
           .order('scheduled_at', { ascending: true })
           .limit(50);
 
-        setUpcomingFixtures(fixturesData || []);
+        // Filter out fixtures with null teams
+        const validFixtures = (fixturesData || []).filter(fixture => 
+          fixture.home_team && fixture.away_team
+        );
+
+        setUpcomingFixtures(validFixtures);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching fixtures:', error);
