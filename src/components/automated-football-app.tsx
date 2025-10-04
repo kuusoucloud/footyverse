@@ -671,30 +671,30 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                     </h3>
                   </div>
                   <div className="space-y-4">
-                    {injuredPlayers.length === 0 ? (
+                    {activeInjuries.length === 0 ? (
                       <div className="text-center py-8">
                         <Heart className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                         <p className="text-slate-400">No current injuries</p>
                         <p className="text-sm text-slate-500 mt-2">All players are fit and ready!</p>
                       </div>
                     ) : (
-                      injuredPlayers.map((player) => (
-                        <div key={player.id} className="glass-row p-4 rounded-lg">
+                      activeInjuries.map((injury) => (
+                        <div key={injury.id} className="glass-row p-4 rounded-lg">
                           <div className="flex justify-between items-center">
                             <div>
-                              <div className="font-medium text-white">{player.name}</div>
-                              <div className="text-sm text-slate-400">{player.team_name}</div>
+                              <div className="font-medium text-white">{injury.player?.name}</div>
+                              <div className="text-sm text-slate-400">{injury.player?.team?.name}</div>
                             </div>
                             <div className="text-right">
                               <div className={`font-medium ${
-                                player.injury_status === 'minor_injury' ? 'text-yellow-400' :
-                                player.injury_status === 'major_injury' ? 'text-red-400' :
+                                injury.severity === 'minor' ? 'text-yellow-400' :
+                                injury.severity === 'major' ? 'text-red-400' :
                                 'text-slate-400'
                               }`}>
-                                {player.injury_status?.replace('_', ' ')}
+                                {injury.severity} injury
                               </div>
                               <div className="text-xs text-slate-500">
-                                {player.recovery_date ? `Until ${new Date(player.recovery_date).toLocaleDateString()}` : 'TBD'}
+                                {injury.recovery_weeks_completed}/{injury.recovery_weeks_needed} weeks
                               </div>
                             </div>
                           </div>
