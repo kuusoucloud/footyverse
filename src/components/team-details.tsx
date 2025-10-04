@@ -303,9 +303,14 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                             return (
                               <div key={player.id} className="bg-white rounded-lg p-4 border hover:shadow-md transition-shadow">
                                 <div className="flex items-start justify-between mb-2">
-                                  <div>
-                                    <h4 className="font-semibold">{player.name}</h4>
-                                    <p className="text-sm text-gray-600">Age: {player.age}</p>
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full text-sm font-bold">
+                                      {player.shirt_number || '?'}
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold">{player.name}</h4>
+                                      <p className="text-sm text-gray-600">Age: {player.age}</p>
+                                    </div>
                                   </div>
                                   <div className={`flex items-center gap-1 ${form.color}`}>
                                     {form.icon}
@@ -542,6 +547,9 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                       .map((player, index) => (
                         <div key={player.id} className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-700 rounded-full text-xs font-bold">
+                              {player.shirt_number || '?'}
+                            </div>
                             <span className="text-sm font-medium">#{index + 1}</span>
                             <div>
                               <div className="font-medium">{player.name}</div>

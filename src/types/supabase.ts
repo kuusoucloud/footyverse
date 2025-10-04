@@ -626,6 +626,7 @@ export type Database = {
           market_value: number | null
           name: string
           position: string
+          shirt_number: number | null
           team_id: string | null
           transfer_listed: boolean | null
           weekly_wage: number | null
@@ -650,6 +651,7 @@ export type Database = {
           market_value?: number | null
           name: string
           position: string
+          shirt_number?: number | null
           team_id?: string | null
           transfer_listed?: boolean | null
           weekly_wage?: number | null
@@ -674,6 +676,7 @@ export type Database = {
           market_value?: number | null
           name?: string
           position?: string
+          shirt_number?: number | null
           team_id?: string | null
           transfer_listed?: boolean | null
           weekly_wage?: number | null
