@@ -264,7 +264,7 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
       setIsLoading(false);
     } catch (error) {
       console.error('Failed to load matches:', error);
-      setDebugInfo(`Error: ${error.message}`);
+      setDebugInfo(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsLoading(false);
     }
   };
