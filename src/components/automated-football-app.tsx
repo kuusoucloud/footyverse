@@ -72,7 +72,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
           supabase.from('fixtures').select('*').eq('status', 'live').limit(10),
           supabase.from('team_standings').select(`
             *,
-            team:teams(name, tier, elo, primary_color, secondary_color)
+            team:teams(name, tier, elo, primary_color, secondary_color, logo_url)
           `).order('points', { ascending: false }).limit(100)
         ]);
 
