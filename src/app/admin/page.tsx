@@ -1,27 +1,48 @@
-import { redirect } from 'next/navigation';
-import { createClient } from '@/utils/supabase/server';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminPanel from '@/components/admin-panel';
 
-export default async function AdminPage() {
-  const supabase = createClient();
-  
-  const { data: { user }, error } = await supabase.auth.getUser();
-  
-  if (error || !user) {
-    redirect('/sign-in?message=Admin access requires authentication');
+export default function AdminPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    // Check if admin is logged in via localStorage
+    const adminUser = localStorage.getItem('admin_user');
+    
+    if (!adminUser) {
+      router.push('/sign-in');
+      return;
+    }
+
+    try {
+      const user = JSON.parse(adminUser);
+      if (user.role === 'admin') {
+        setIsAuthenticated(true);
+      } else {
+        router.push('/sign-in');
+      }
+    } catch (error) {
+      router.push('/sign-in');
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
   }
 
-  // Check if user is admin (you can customize this logic)
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  // For now, allow any authenticated user - you can restrict to specific roles
-  // if (profile?.role !== 'admin') {
-  //   redirect('/dashboard?message=Admin access denied');
-  // }
+  if (!isAuthenticated) {
+    return null; // Will redirect
+  }
 
   return <AdminPanel />;
 }
