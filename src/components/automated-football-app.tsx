@@ -66,7 +66,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
     const fetchData = async () => {
       try {
         // Get basic stats and standings using existing schema
-        const [teamsRes, playersRes, fixturesRes, standingsRes] = await Promise.all([
+        const [teamsRes, playersRes, fixturesRes, standingsRes, transfersRes] = await Promise.all([
           supabase.from('teams').select('id'),
           supabase.from('players').select('id'),
           supabase.from('fixtures').select(`
@@ -77,7 +77,13 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
           supabase.from('team_standings').select(`
             *,
             team:teams(name, tier, elo, primary_color, secondary_color, logo_url)
-          `).order('points', { ascending: false }).limit(100)
+          `).order('points', { ascending: false }).limit(100),
+          supabase.from('transfers').select(`
+            *,
+            player:players(name, position, age, overall_rating),
+            from_team:from_team_id(name, logo_url, primary_color),
+            to_team:to_team_id(name, logo_url, primary_color)
+          `).order('created_at', { ascending: false }).limit(20)
         ]);
 
         setStats({
@@ -88,6 +94,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
 
         setLiveMatches(fixturesRes.data || []);
         setStandings(standingsRes.data || []);
+        setRecentTransfers(transfersRes.data || []);
         setIsConnected(true);
 
       } catch (error) {
@@ -499,17 +506,123 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
                 {recentTransfers.length > 0 ? (
                   <div className="space-y-4">
                     {recentTransfers.slice(0, 10).map((transfer) => (
-                      <div key={transfer.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                        <div>
-                          <p className="font-semibold">{transfer.player?.name}</p>
-                          <p className="text-sm text-gray-600">
-                            {transfer.from_team?.name} → {transfer.to_team?.name}
-                          </p>
-                          <p className="text-xs text-gray-500">{formatTimeAgo(transfer.created_at)}</p>
+                      <div key={transfer.id} className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                        <div className="flex items-center justify-between">
+                          {/* Player Info */}
+                          <div className="flex items-center gap-4 flex-1">
+                            <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+                              <span className="text-lg font-bold text-gray-600">
+                                {transfer.player?.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'P'}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-800">{transfer.player?.name || 'Unknown Player'}</p>
+                              <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <span>{transfer.player?.position || 'Unknown'}</span>
+                                <span>•</span>
+                                <span>{transfer.player?.age || 'N/A'} years</span>
+                                <span>•</span>
+                                <span>Rating: {transfer.player?.overall_rating || 'N/A'}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Transfer Direction */}
+                          <div className="flex items-center gap-4 flex-1 justify-center">
+                            {/* From Team */}
+                            <div className="flex items-center gap-2">
+                              {transfer.from_team?.logo_url ? (
+                                <img 
+                                  src={transfer.from_team.logo_url} 
+                                  alt={`${transfer.from_team.name} logo`}
+                                  className="w-8 h-8 rounded border-2 border-white shadow-md bg-white p-1"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const fallback = target.nextElementSibling as HTMLElement;
+                                    if (fallback) fallback.style.display = 'flex';
+                                  }}
+                                />
+                              ) : null}
+                              <div 
+                                className="w-8 h-8 rounded border-2 border-white shadow-md flex items-center justify-center text-xs font-bold text-white"
+                                style={{ 
+                                  backgroundColor: transfer.from_team?.primary_color || '#6B7280',
+                                  display: transfer.from_team?.logo_url ? 'none' : 'flex'
+                                }}
+                              >
+                                {transfer.from_team?.name?.split(' ').map((word: string) => word[0]).join('').slice(0, 2) || 'FT'}
+                              </div>
+                              <span className="text-sm font-medium text-gray-700 max-w-24 truncate">
+                                {transfer.from_team?.name || 'Unknown'}
+                              </span>
+                            </div>
+
+                            {/* Arrow */}
+                            <div className="flex items-center gap-2 text-blue-600">
+                              <div className="w-8 h-0.5 bg-blue-600"></div>
+                              <div className="w-0 h-0 border-l-4 border-l-blue-600 border-t-2 border-t-transparent border-b-2 border-b-transparent"></div>
+                            </div>
+
+                            {/* To Team */}
+                            <div className="flex items-center gap-2">
+                              {transfer.to_team?.logo_url ? (
+                                <img 
+                                  src={transfer.to_team.logo_url} 
+                                  alt={`${transfer.to_team.name} logo`}
+                                  className="w-8 h-8 rounded border-2 border-white shadow-md bg-white p-1"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const fallback = target.nextElementSibling as HTMLElement;
+                                    if (fallback) fallback.style.display = 'flex';
+                                  }}
+                                />
+                              ) : null}
+                              <div 
+                                className="w-8 h-8 rounded border-2 border-white shadow-md flex items-center justify-center text-xs font-bold text-white"
+                                style={{ 
+                                  backgroundColor: transfer.to_team?.primary_color || '#10B981',
+                                  display: transfer.to_team?.logo_url ? 'none' : 'flex'
+                                }}
+                              >
+                                {transfer.to_team?.name?.split(' ').map((word: string) => word[0]).join('').slice(0, 2) || 'TT'}
+                              </div>
+                              <span className="text-sm font-medium text-gray-700 max-w-24 truncate">
+                                {transfer.to_team?.name || 'Unknown'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Transfer Details */}
+                          <div className="text-right flex-1">
+                            <p className="font-semibold text-green-600 text-lg">
+                              {formatCurrency(transfer.transfer_fee || 0)}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {formatTimeAgo(transfer.created_at)}
+                            </p>
+                            {transfer.contract_length && (
+                              <p className="text-xs text-gray-600">
+                                {transfer.contract_length} year contract
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-green-600">{formatCurrency(transfer.transfer_fee)}</p>
-                          <p className="text-xs text-gray-500">{transfer.player?.position}</p>
+
+                        {/* Additional Transfer Info */}
+                        <div className="mt-3 pt-3 border-t border-blue-200">
+                          <div className="flex items-center justify-between text-sm text-gray-600">
+                            <div className="flex items-center gap-4">
+                              <span>Transfer Type: {transfer.transfer_type || 'Permanent'}</span>
+                              {transfer.wage && (
+                                <span>Weekly Wage: {formatCurrency(transfer.wage)}</span>
+                              )}
+                            </div>
+                            <div className="text-xs">
+                              Transfer ID: {transfer.id.slice(0, 8)}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
