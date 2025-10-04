@@ -290,50 +290,6 @@ function UpcomingFixtures({ onTeamSelect }: { onTeamSelect?: (teamId: string) =>
     fixture.home_team?.tier === selectedTier || fixture.away_team?.tier === selectedTier
   );
 
-  const generateMoreFixtures = async () => {
-    try {
-      const { createClient } = await import('@/utils/supabase/client');
-      const supabase = createClient();
-      
-      const { data, error } = await supabase.functions.invoke(
-        "supabase-functions-generate-fixtures",
-        {
-          body: { 
-            action: "generate_all_fixtures",
-            force_regenerate: true
-          },
-        },
-      );
-
-      if (error) throw error;
-      
-      // Refresh the fixtures after generation
-      const fetchUpcomingFixtures = async () => {
-        const { data: fixturesData } = await supabase
-          .from('fixtures')
-          .select(`
-            *,
-            home_team:home_team_id(id, name, tier, primary_color, logo_url, crest_url),
-            away_team:away_team_id(id, name, tier, primary_color, logo_url, crest_url)
-          `)
-          .in('status', ['scheduled'])
-          .order('scheduled_at', { ascending: true })
-          .limit(50);
-
-        const validFixtures = (fixturesData || []).filter(fixture => 
-          fixture.home_team && fixture.away_team
-        );
-
-        setUpcomingFixtures(validFixtures);
-      };
-      
-      await fetchUpcomingFixtures();
-      
-    } catch (error) {
-      console.error('Error generating fixtures:', error);
-    }
-  };
-
   if (loading) {
     return (
       <div className="glass-card p-8">
@@ -353,28 +309,20 @@ function UpcomingFixtures({ onTeamSelect }: { onTeamSelect?: (teamId: string) =>
     <div className="glass-card p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-white">Upcoming Fixtures</h2>
-        <div className="flex gap-2">
-          <button
-            onClick={generateMoreFixtures}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
-          >
-            Generate More Fixtures
-          </button>
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map((tier) => (
-              <button
-                key={tier}
-                onClick={() => setSelectedTier(tier)}
-                className={`px-3 py-1 rounded text-sm transition-colors ${
-                  selectedTier === tier
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                }`}
-              >
-                Tier {tier}
-              </button>
-            ))}
-          </div>
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map((tier) => (
+            <button
+              key={tier}
+              onClick={() => setSelectedTier(tier)}
+              className={`px-3 py-1 rounded text-sm transition-colors ${
+                selectedTier === tier
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
+              Tier {tier}
+            </button>
+          ))}
         </div>
       </div>
 
