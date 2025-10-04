@@ -63,7 +63,7 @@ export default function FootballApp() {
 
   if (currentView === 'matches') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="p-6">
           <Button 
             onClick={handleBackToOverview}
@@ -79,30 +79,30 @@ export default function FootballApp() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-5xl font-bold text-gray-800 mb-4">
+            <h1 className="text-5xl font-bold text-white mb-4">
               ⚽ 3D Football Universe
             </h1>
-            <p className="text-xl text-gray-600 mb-8">
+            <p className="text-xl text-slate-300 mb-8">
               Watch live 3D matches from an autonomous football ecosystem
             </p>
           </div>
 
           {/* Navigation Card - Only 3D Match Viewer */}
           <div className="flex justify-center mb-12">
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow max-w-md" onClick={() => setCurrentView('matches')}>
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow max-w-md bg-white/10 border-white/20" onClick={() => setCurrentView('matches')}>
               <CardHeader>
-                <CardTitle className="flex items-center gap-3 justify-center">
+                <CardTitle className="flex items-center gap-3 justify-center text-white">
                   <span className="text-2xl">🎮</span>
                   3D Match Viewer
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 mb-4 text-center">
+                <p className="text-slate-300 mb-4 text-center">
                   Experience live football matches in stunning 3D with broadcast-style camera views and real-time action.
                 </p>
                 <Button className="w-full">
@@ -173,7 +173,7 @@ export default function FootballApp() {
                       <li>• Wealth-based team tiers</li>
                       <li>• Dynamic transfer market</li>
                       <li>• Player wages & contracts</li>
-                      <li>• Youth academy systems</li>
+                      <li>��� Youth academy systems</li>
                       <li>• Financial constraints</li>
                     </ul>
                   </CardContent>

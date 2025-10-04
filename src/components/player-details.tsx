@@ -286,7 +286,7 @@ export default function PlayerDetails({ playerId, onBack }: PlayerDetailsProps) 
                     </span>
                     <span className="flex items-center gap-1">
                       <Star className="h-4 w-4" />
-                      Overall: {player.overall_rating}
+                      Overall: {player.skill_rating}
                     </span>
                   </div>
                 </div>
@@ -351,56 +351,32 @@ export default function PlayerDetails({ playerId, onBack }: PlayerDetailsProps) 
                 Player Attributes
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[
-                  { name: 'Pace', value: player.pace || 0 },
-                  { name: 'Shooting', value: player.shooting || 0 },
-                  { name: 'Passing', value: player.passing || 0 },
-                  { name: 'Dribbling', value: player.dribbling || 0 },
-                  { name: 'Defending', value: player.defending || 0 },
-                  { name: 'Physical', value: player.physical || 0 },
-                  { name: 'Crossing', value: player.crossing || 0 },
-                  { name: 'Finishing', value: player.finishing || 0 },
-                  { name: 'Heading', value: player.heading_accuracy || 0 },
-                  { name: 'Short Passing', value: player.short_passing || 0 },
-                  { name: 'Volleys', value: player.volleys || 0 },
-                  { name: 'Dribbling', value: player.dribbling || 0 },
-                  { name: 'Curve', value: player.curve || 0 },
-                  { name: 'Free Kick', value: player.free_kick_accuracy || 0 },
-                  { name: 'Long Passing', value: player.long_passing || 0 },
-                  { name: 'Ball Control', value: player.ball_control || 0 },
-                  { name: 'Acceleration', value: player.acceleration || 0 },
-                  { name: 'Sprint Speed', value: player.sprint_speed || 0 },
-                  { name: 'Agility', value: player.agility || 0 },
-                  { name: 'Reactions', value: player.reactions || 0 },
-                  { name: 'Balance', value: player.balance || 0 },
-                  { name: 'Shot Power', value: player.shot_power || 0 },
-                  { name: 'Jumping', value: player.jumping || 0 },
-                  { name: 'Stamina', value: player.stamina || 0 },
-                  { name: 'Strength', value: player.strength || 0 },
-                  { name: 'Long Shots', value: player.long_shots || 0 },
-                  { name: 'Aggression', value: player.aggression || 0 },
-                  { name: 'Interceptions', value: player.interceptions || 0 },
-                  { name: 'Positioning', value: player.positioning || 0 },
-                  { name: 'Vision', value: player.vision || 0 },
-                  { name: 'Penalties', value: player.penalties || 0 },
-                  { name: 'Composure', value: player.composure || 0 },
-                  { name: 'Marking', value: player.marking || 0 },
-                  { name: 'Standing Tackle', value: player.standing_tackle || 0 },
-                  { name: 'Sliding Tackle', value: player.sliding_tackle || 0 }
-                ].filter(attr => attr.value > 0).map((attr) => (
-                  <div key={attr.name} className="glass-row p-4 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-slate-300">{attr.name}</span>
-                      <span className={`text-sm font-bold ${getSkillColor(attr.value)}`}>{attr.value}</span>
-                    </div>
-                    <div className="w-full bg-slate-700 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all duration-500 ${getSkillBarColor(attr.value)}`}
-                        style={{ width: `${attr.value}%` }}
-                      ></div>
-                    </div>
+                {player.attributes && Object.keys(player.attributes).length > 0 ? (
+                  Object.entries(player.attributes).map(([key, value]) => {
+                    const attributeValue = typeof value === 'number' ? value : 0;
+                    const displayName = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+                    
+                    return (
+                      <div key={key} className="glass-row p-4 rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium text-slate-300">{displayName}</span>
+                          <span className={`text-sm font-bold ${getSkillColor(attributeValue)}`}>{attributeValue}</span>
+                        </div>
+                        <div className="w-full bg-slate-700 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full transition-all duration-500 ${getSkillBarColor(attributeValue)}`}
+                            style={{ width: `${attributeValue}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="col-span-full text-center py-8">
+                    <BarChart3 className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-400">No attributes data available</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 

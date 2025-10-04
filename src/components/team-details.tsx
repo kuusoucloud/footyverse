@@ -384,10 +384,10 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {positionPlayers
-                          .sort((a, b) => b.overall_rating - a.overall_rating)
+                          .sort((a, b) => b.skill_rating - a.skill_rating)
                           .map((player, index) => {
                             const form = getFormRating(player.form_rating || 5);
-                            const skill = getSkillRating(player.overall_rating);
+                            const skill = getSkillRating(player.skill_rating);
                             
                             return (
                               <div 
@@ -415,7 +415,7 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                                 <div className="grid grid-cols-3 gap-2 text-xs">
                                   <div className="text-center">
                                     <div className="text-slate-400">Overall</div>
-                                    <div className={`font-bold ${skill.color}`}>{player.overall_rating}</div>
+                                    <div className={`font-bold ${skill.color}`}>{player.skill_rating}</div>
                                   </div>
                                   <div className="text-center">
                                     <div className="text-slate-400">Form</div>
