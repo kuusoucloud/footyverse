@@ -287,7 +287,7 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                     </span>
                     <span className="flex items-center gap-1">
                       <DollarSign className="h-4 w-4" />
-                      Budget: £{team.budget?.toLocaleString()}
+                      Budget: £{team.transfer_budget?.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -606,15 +606,15 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="glass-row p-4 rounded-lg">
-                    <div className="text-sm text-slate-400 mb-1">Current Budget</div>
+                    <div className="text-sm text-slate-400 mb-1">Transfer Budget</div>
                     <div className="text-2xl font-bold text-white">
-                      £{team.budget?.toLocaleString()}
+                      £{team.transfer_budget?.toLocaleString()}
                     </div>
                   </div>
                   <div className="glass-row p-4 rounded-lg">
-                    <div className="text-sm text-slate-400 mb-1">Weekly Wages</div>
+                    <div className="text-sm text-slate-400 mb-1">Weekly Wage Budget</div>
                     <div className="text-2xl font-bold text-white">
-                      £{players.reduce((sum, p) => sum + (p.weekly_wage || 0), 0).toLocaleString()}
+                      £{team.weekly_wage_budget?.toLocaleString()}
                     </div>
                   </div>
                 </div>
