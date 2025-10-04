@@ -337,6 +337,7 @@ export type Database = {
           fixture_id: string | null
           home_goals: number | null
           id: string
+          season: number | null
           started_at: string | null
           state_blob: Json | null
         }
@@ -347,6 +348,7 @@ export type Database = {
           fixture_id?: string | null
           home_goals?: number | null
           id?: string
+          season?: number | null
           started_at?: string | null
           state_blob?: Json | null
         }
@@ -357,6 +359,7 @@ export type Database = {
           fixture_id?: string | null
           home_goals?: number | null
           id?: string
+          season?: number | null
           started_at?: string | null
           state_blob?: Json | null
         }
@@ -764,6 +767,42 @@ export type Database = {
           },
         ]
       }
+      season_progression: {
+        Row: {
+          created_at: string | null
+          id: string
+          matches_completed: number | null
+          season_end_date: string | null
+          season_number: number
+          season_start_date: string | null
+          season_status: string | null
+          tier: number
+          total_matches_required: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          matches_completed?: number | null
+          season_end_date?: string | null
+          season_number: number
+          season_start_date?: string | null
+          season_status?: string | null
+          tier: number
+          total_matches_required?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          matches_completed?: number | null
+          season_end_date?: string | null
+          season_number?: number
+          season_start_date?: string | null
+          season_status?: string | null
+          tier?: number
+          total_matches_required?: number | null
+        }
+        Relationships: []
+      }
       seasons: {
         Row: {
           created_at: string | null
@@ -868,10 +907,12 @@ export type Database = {
         Row: {
           created_at: string | null
           crest_url: string | null
+          current_season: number | null
           current_wages: number | null
           elo: number
           id: string
           logo_url: string | null
+          matches_played_this_season: number | null
           name: string
           primary_color: string
           secondary_color: string
@@ -884,10 +925,12 @@ export type Database = {
         Insert: {
           created_at?: string | null
           crest_url?: string | null
+          current_season?: number | null
           current_wages?: number | null
           elo?: number
           id?: string
           logo_url?: string | null
+          matches_played_this_season?: number | null
           name: string
           primary_color?: string
           secondary_color?: string
@@ -900,10 +943,12 @@ export type Database = {
         Update: {
           created_at?: string | null
           crest_url?: string | null
+          current_season?: number | null
           current_wages?: number | null
           elo?: number
           id?: string
           logo_url?: string | null
+          matches_played_this_season?: number | null
           name?: string
           primary_color?: string
           secondary_color?: string
@@ -978,6 +1023,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      transfer_window_schedule: {
+        Row: {
+          closed_at: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          matches_trigger: number
+          opened_at: string | null
+          season_number: number
+          tier: number
+          window_type: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          matches_trigger: number
+          opened_at?: string | null
+          season_number: number
+          tier: number
+          window_type: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          matches_trigger?: number
+          opened_at?: string | null
+          season_number?: number
+          tier?: number
+          window_type?: string
+        }
+        Relationships: []
       }
       transfer_windows: {
         Row: {
@@ -1196,6 +1277,10 @@ export type Database = {
         Args: { player_age: number; player_attributes: Json; team_tier: number }
         Returns: number
       }
+      check_season_completion: {
+        Args: { tier_num: number }
+        Returns: boolean
+      }
       continuous_orchestration: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1207,6 +1292,16 @@ export type Database = {
       generate_season_fixtures: {
         Args: { p_season_id: string }
         Returns: number
+      }
+      get_active_transfer_windows: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          matches_completed: number
+          season_number: number
+          tier: number
+          total_matches_required: number
+          window_type: string
+        }[]
       }
       get_league_standings: {
         Args: { league_tier?: number }
@@ -1225,12 +1320,20 @@ export type Database = {
           wins: number
         }[]
       }
+      manage_transfer_windows: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       mark_orchestration_completed: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
       mark_orchestration_started: {
         Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      progress_season: {
+        Args: { tier_num: number }
         Returns: undefined
       }
       run_orchestrator_http: {

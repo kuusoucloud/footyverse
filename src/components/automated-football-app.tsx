@@ -1,26 +1,17 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Activity, 
   Users, 
   Trophy, 
-  Clock, 
   TrendingUp, 
+  Clock, 
   DollarSign,
-  Play,
-  Pause,
-  RotateCcw,
-  Crown,
-  Target,
-  ArrowUp,
-  ArrowDown
+  Calendar,
+  AlertCircle
 } from 'lucide-react';
 
 const supabase = createClient();
@@ -37,6 +28,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
   const [standings, setStandings] = useState<any[]>([]);
   const [selectedTier, setSelectedTier] = useState(1);
   const [isConnected, setIsConnected] = useState(false);
+  const [seasonProgress, setSeasonProgress] = useState<any[]>([]);
 
   // Server-side heartbeat to trigger orchestration
   useEffect(() => {
@@ -65,8 +57,8 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get basic stats and standings using existing schema
-        const [teamsRes, playersRes, fixturesRes, standingsRes, transfersRes] = await Promise.all([
+        // Get basic stats, standings, and season progression
+        const [teamsRes, playersRes, fixturesRes, standingsRes, transfersRes, seasonRes] = await Promise.all([
           supabase.from('teams').select('id'),
           supabase.from('players').select('id'),
           supabase.from('fixtures').select(`
@@ -83,7 +75,8 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
             player:players(name, position, age, overall_rating),
             from_team:from_team_id(name, logo_url, primary_color),
             to_team:to_team_id(name, logo_url, primary_color)
-          `).order('created_at', { ascending: false }).limit(20)
+          `).order('created_at', { ascending: false }).limit(20),
+          supabase.from('season_progression').select('*').eq('season_status', 'active').order('tier')
         ]);
 
         setStats({
@@ -95,6 +88,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
         setLiveMatches(fixturesRes.data || []);
         setStandings(standingsRes.data || []);
         setRecentTransfers(transfersRes.data || []);
+        setSeasonProgress(seasonRes.data || []);
         setIsConnected(true);
 
       } catch (error) {
@@ -261,20 +255,22 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
           </Card>
         </div>
 
-        <Tabs defaultValue="standings" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="standings">League Standings</TabsTrigger>
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="matches">Live Matches</TabsTrigger>
-            <TabsTrigger value="transfers">Recent Transfers</TabsTrigger>
+            <TabsTrigger value="standings">Standings</TabsTrigger>
+            <TabsTrigger value="transfers">Transfers</TabsTrigger>
+            <TabsTrigger value="seasons">Seasons</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="standings" className="mt-6">
+          <TabsContent value="overview" className="mt-6">
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Trophy className="w-5 h-5" />
-                    Season Standings
+                    Autonomous Football Universe
                   </CardTitle>
                   <div className="flex gap-2">
                     {[1, 2, 3, 4, 5].map((tier) => (
@@ -291,89 +287,27 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
                 </div>
               </CardHeader>
               <CardContent>
-                {standings.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 border-b pb-2">
-                      <div className="col-span-1">Pos</div>
-                      <div className="col-span-4">Team</div>
-                      <div className="col-span-1">MP</div>
-                      <div className="col-span-1">W</div>
-                      <div className="col-span-1">D</div>
-                      <div className="col-span-1">L</div>
-                      <div className="col-span-1">GD</div>
-                      <div className="col-span-1">Pts</div>
-                      <div className="col-span-1">ELO</div>
-                    </div>
-                    {standings.filter(s => s.team?.tier === selectedTier).map((standing, index) => (
-                      <div 
-                        key={standing.id} 
-                        className={`grid grid-cols-12 gap-2 items-center py-2 rounded transition-colors ${
-                          onTeamSelect ? 'hover:bg-blue-50 cursor-pointer' : 'hover:bg-gray-50'
-                        }`}
-                        onClick={() => onTeamSelect && onTeamSelect(standing.team_id)}
-                      >
-                        <div className="col-span-1 flex items-center gap-1">
-                          <span className="font-medium">{index + 1}</span>
-                          {getPositionIcon(index + 1)}
-                        </div>
-                        <div className="col-span-4">
-                          <div className="flex items-center gap-2">
-                            {standing.team?.logo_url ? (
-                              <img 
-                                src={standing.team.logo_url} 
-                                alt={`${standing.team.name} logo`}
-                                className="w-8 h-8 rounded border-2 border-white shadow-md bg-white p-1"
-                                onError={(e) => {
-                                  // Fallback to initials if logo fails to load
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  const fallback = target.nextElementSibling as HTMLElement;
-                                  if (fallback) fallback.style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            <div 
-                              className="w-8 h-8 rounded border-2 border-white shadow-md flex items-center justify-center text-xs font-bold text-white"
-                              style={{ 
-                                backgroundColor: standing.team?.primary_color,
-                                display: standing.team?.logo_url ? 'none' : 'flex'
-                              }}
-                            >
-                              {standing.team?.name.split(' ').map((word: string) => word[0]).join('').slice(0, 2)}
-                            </div>
-                            <span className={`font-medium ${onTeamSelect ? 'text-blue-600 hover:text-blue-800' : ''}`}>
-                              {standing.team?.name}
-                            </span>
-                            {onTeamSelect && (
-                              <span className="text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                Click to view →
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="col-span-1 text-sm">{standing.played}</div>
-                        <div className="col-span-1 text-sm text-green-600">{standing.won}</div>
-                        <div className="col-span-1 text-sm text-yellow-600">{standing.drawn}</div>
-                        <div className="col-span-1 text-sm text-red-600">{standing.lost}</div>
-                        <div className="col-span-1 text-sm">
-                          <span className={standing.gd >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {standing.gd >= 0 ? '+' : ''}{standing.gd}
-                          </span>
-                        </div>
-                        <div className="col-span-1 text-sm font-bold">{standing.points}</div>
-                        <div className="col-span-1 text-xs text-gray-600">
-                          {Math.round(standing.team?.elo || 0)}
-                        </div>
-                      </div>
-                    ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="font-semibold text-gray-700 mb-4">⚽ Match Simulation</h3>
+                    <ul className="text-sm text-gray-600 space-y-1">
+                      <li>• Server-driven match simulation</li>
+                      <li>• Automatic fixture generation</li>
+                      <li>• Synchronized across all clients</li>
+                      <li>• Consistent league progression</li>
+                    </ul>
                   </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No standings data yet</p>
-                    <p className="text-sm">Matches need to be completed to generate standings</p>
+                  
+                  <div>
+                    <h3 className="font-semibold text-gray-700 mb-4">💰 Transfer System</h3>
+                    <ul className="text-sm text-gray-600 space-y-1">
+                      <li>• Server-controlled transfers</li>
+                      <li>• Global market consistency</li>
+                      <li>• Same prices for all clients</li>
+                      <li>• Synchronized player movements</li>
+                    </ul>
                   </div>
-                )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -488,6 +422,116 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
                     <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>No live matches at the moment</p>
                     <p className="text-sm">Server will start matches automatically</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="standings" className="mt-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="w-5 h-5" />
+                    Season Standings
+                  </CardTitle>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((tier) => (
+                      <Button
+                        key={tier}
+                        variant={selectedTier === tier ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedTier(tier)}
+                      >
+                        Tier {tier}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {standings.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 border-b pb-2">
+                      <div className="col-span-1">Pos</div>
+                      <div className="col-span-4">Team</div>
+                      <div className="col-span-1">MP</div>
+                      <div className="col-span-1">W</div>
+                      <div className="col-span-1">D</div>
+                      <div className="col-span-1">L</div>
+                      <div className="col-span-1">GD</div>
+                      <div className="col-span-1">Pts</div>
+                      <div className="col-span-1">ELO</div>
+                    </div>
+                    {standings.filter(s => s.team?.tier === selectedTier).map((standing, index) => (
+                      <div 
+                        key={standing.id} 
+                        className={`grid grid-cols-12 gap-2 items-center py-2 rounded transition-colors ${
+                          onTeamSelect ? 'hover:bg-blue-50 cursor-pointer' : 'hover:bg-gray-50'
+                        }`}
+                        onClick={() => onTeamSelect && onTeamSelect(standing.team_id)}
+                      >
+                        <div className="col-span-1 flex items-center gap-1">
+                          <span className="font-medium">{index + 1}</span>
+                          {getPositionIcon(index + 1)}
+                        </div>
+                        <div className="col-span-4">
+                          <div className="flex items-center gap-2">
+                            {standing.team?.logo_url ? (
+                              <img 
+                                src={standing.team.logo_url} 
+                                alt={`${standing.team.name} logo`}
+                                className="w-8 h-8 rounded border-2 border-white shadow-md bg-white p-1"
+                                onError={(e) => {
+                                  // Fallback to initials if logo fails to load
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const fallback = target.nextElementSibling as HTMLElement;
+                                  if (fallback) fallback.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className="w-8 h-8 rounded border-2 border-white shadow-md flex items-center justify-center text-xs font-bold text-white"
+                              style={{ 
+                                backgroundColor: standing.team?.primary_color,
+                                display: standing.team?.logo_url ? 'none' : 'flex'
+                              }}
+                            >
+                              {standing.team?.name.split(' ').map((word: string) => word[0]).join('').slice(0, 2)}
+                            </div>
+                            <span className={`font-medium ${onTeamSelect ? 'text-blue-600 hover:text-blue-800' : ''}`}>
+                              {standing.team?.name}
+                            </span>
+                            {onTeamSelect && (
+                              <span className="text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                Click to view →
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="col-span-1 text-sm">{standing.played}</div>
+                        <div className="col-span-1 text-sm text-green-600">{standing.won}</div>
+                        <div className="col-span-1 text-sm text-yellow-600">{standing.drawn}</div>
+                        <div className="col-span-1 text-sm text-red-600">{standing.lost}</div>
+                        <div className="col-span-1 text-sm">
+                          <span className={standing.gd >= 0 ? 'text-green-600' : 'text-red-600'}>
+                            {standing.gd >= 0 ? '+' : ''}{standing.gd}
+                          </span>
+                        </div>
+                        <div className="col-span-1 text-sm font-bold">{standing.points}</div>
+                        <div className="col-span-1 text-xs text-gray-600">
+                          {Math.round(standing.team?.elo || 0)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No standings data yet</p>
+                    <p className="text-sm">Matches need to be completed to generate standings</p>
                   </div>
                 )}
               </CardContent>
@@ -632,6 +676,137 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
                     <DollarSign className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>No recent transfers</p>
                     <p className="text-sm">Server handles transfers automatically</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="seasons" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Season Progression
+                </CardTitle>
+                <CardDescription>
+                  Track season progress across all tiers. 1 season = 35 matches per team.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {seasonProgress.length > 0 ? (
+                  <div className="space-y-6">
+                    {seasonProgress.map((season) => {
+                      const progressPercentage = (season.matches_completed / season.total_matches_required) * 100;
+                      const isNearCompletion = progressPercentage >= 90;
+                      
+                      return (
+                        <div key={`${season.tier}-${season.season_number}`} className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-200">
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-800">
+                                Tier {season.tier} - Season {season.season_number}
+                              </h3>
+                              <p className="text-sm text-gray-600">
+                                {season.matches_completed} of {season.total_matches_required} matches completed
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-blue-600">
+                                {progressPercentage.toFixed(1)}%
+                              </div>
+                              <Badge variant={isNearCompletion ? "destructive" : "secondary"}>
+                                {isNearCompletion ? "Season Ending" : "In Progress"}
+                              </Badge>
+                            </div>
+                          </div>
+                          
+                          {/* Progress Bar */}
+                          <div className="mb-4">
+                            <div className="w-full bg-gray-200 rounded-full h-3">
+                              <div 
+                                className={`h-3 rounded-full transition-all duration-300 ${
+                                  isNearCompletion ? 'bg-red-500' : 'bg-blue-500'
+                                }`}
+                                style={{ width: `${Math.min(100, progressPercentage)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                          
+                          {/* Season Details */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div className="bg-white rounded-lg p-3 border">
+                              <div className="text-gray-600">Matches Left</div>
+                              <div className="font-bold text-lg">
+                                {season.total_matches_required - season.matches_completed}
+                              </div>
+                            </div>
+                            <div className="bg-white rounded-lg p-3 border">
+                              <div className="text-gray-600">Season Status</div>
+                              <div className="font-bold text-lg capitalize">
+                                {season.season_status}
+                              </div>
+                            </div>
+                            <div className="bg-white rounded-lg p-3 border">
+                              <div className="text-gray-600">Started</div>
+                              <div className="font-bold text-sm">
+                                {new Date(season.season_start_date).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <div className="bg-white rounded-lg p-3 border">
+                              <div className="text-gray-600">Transfer Windows</div>
+                              <div className="font-bold text-sm">
+                                {progressPercentage < 10 ? "Summer Open" : 
+                                 progressPercentage >= 15 && progressPercentage <= 25 ? "Winter Open" :
+                                 "Closed"}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Season Milestones */}
+                          <div className="mt-4 pt-4 border-t border-blue-200">
+                            <div className="flex items-center justify-between text-xs text-gray-600">
+                              <div className={`flex items-center gap-1 ${progressPercentage >= 0 ? 'text-green-600 font-semibold' : ''}`}>
+                                <div className={`w-2 h-2 rounded-full ${progressPercentage >= 0 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                Season Start
+                              </div>
+                              <div className={`flex items-center gap-1 ${progressPercentage >= 30 ? 'text-green-600 font-semibold' : ''}`}>
+                                <div className={`w-2 h-2 rounded-full ${progressPercentage >= 30 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                Mid-Season
+                              </div>
+                              <div className={`flex items-center gap-1 ${progressPercentage >= 70 ? 'text-green-600 font-semibold' : ''}`}>
+                                <div className={`w-2 h-2 rounded-full ${progressPercentage >= 70 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                Final Stretch
+                              </div>
+                              <div className={`flex items-center gap-1 ${progressPercentage >= 100 ? 'text-green-600 font-semibold' : ''}`}>
+                                <div className={`w-2 h-2 rounded-full ${progressPercentage >= 100 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                Season End
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* What happens at season end */}
+                          {isNearCompletion && (
+                            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                              <div className="flex items-center gap-2 text-yellow-800">
+                                <AlertCircle className="w-4 h-4" />
+                                <span className="font-semibold">Season Ending Soon!</span>
+                              </div>
+                              <div className="text-sm text-yellow-700 mt-1">
+                                When this season completes: Players age +1 year, contracts reduce by 1 year, 
+                                new season begins, transfer windows reset.
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No active seasons found</p>
+                    <p className="text-sm">Server will initialize seasons automatically</p>
                   </div>
                 )}
               </CardContent>
