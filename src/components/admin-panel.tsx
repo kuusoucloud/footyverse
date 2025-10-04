@@ -547,7 +547,7 @@ export default function AdminPanel() {
               <h3 className="text-sm font-medium text-slate-300">Active Matches</h3>
               <Play className="h-4 w-4 text-slate-400" />
             </div>
-            <div className="text-2xl font-bold text-white">{stats.activeMatches}</div>
+            <div className="text-2xl font-bold text-white">{stats.liveMatches}</div>
             <p className="text-xs text-slate-400">Currently simulating</p>
           </div>
 
