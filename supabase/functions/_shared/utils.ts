@@ -1,196 +1,237 @@
 import { Team, Player, Odds } from './types.ts';
 
-// Seeded random number generator
-class SeededRandom {
-  private seed: number;
-
-  constructor(seed: number) {
-    this.seed = seed;
-  }
-
-  next(): number {
-    this.seed = (this.seed * 9301 + 49297) % 233280;
-    return this.seed / 233280;
-  }
-
-  nextInt(min: number, max: number): number {
-    return Math.floor(this.next() * (max - min + 1)) + min;
-  }
-
-  choice<T>(array: T[]): T {
-    return array[Math.floor(this.next() * array.length)];
-  }
+export function calculateOdds(homeElo: number, awayElo: number, homeAdvantage: number = 50): Odds {
+  const eloDiff = homeElo - awayElo + homeAdvantage;
+  
+  // Logistic model for home win probability
+  const homeWinProb = 1 / (1 + Math.pow(10, -eloDiff / 400));
+  
+  // Draw probability based on rating gap (closer teams = more draws)
+  const ratingGap = Math.abs(eloDiff);
+  const baseDraw = 0.25;
+  const drawProb = baseDraw * Math.exp(-ratingGap / 200);
+  
+  // Away win probability
+  const awayWinProb = 1 - homeWinProb - drawProb;
+  
+  // Apply 6% margin
+  const margin = 0.06;
+  const totalProb = homeWinProb + drawProb + awayWinProb;
+  
+  const adjustedHome = homeWinProb / totalProb * (1 - margin);
+  const adjustedDraw = drawProb / totalProb * (1 - margin);
+  const adjustedAway = awayWinProb / totalProb * (1 - margin);
+  
+  return {
+    home: parseFloat((1 / adjustedHome).toFixed(2)),
+    draw: parseFloat((1 / adjustedDraw).toFixed(2)),
+    away: parseFloat((1 / adjustedAway).toFixed(2))
+  };
 }
 
-// Team name generation
-const CITIES = [
-  'Manchester', 'Liverpool', 'London', 'Birmingham', 'Leeds', 'Sheffield', 'Bristol',
-  'Newcastle', 'Nottingham', 'Leicester', 'Coventry', 'Bradford', 'Cardiff', 'Belfast',
-  'Edinburgh', 'Glasgow', 'Aberdeen', 'Dundee', 'Swansea', 'Plymouth'
-];
+export function generateTeams(count: number): Team[] {
+  const teamNames = [
+    'Arsenal', 'Chelsea', 'Liverpool', 'Manchester United', 'Manchester City',
+    'Tottenham', 'Newcastle', 'Brighton', 'Aston Villa', 'West Ham',
+    'Crystal Palace', 'Fulham', 'Brentford', 'Wolves', 'Everton',
+    'Nottingham Forest', 'Bournemouth', 'Sheffield United', 'Burnley', 'Luton',
+    'Leicester City', 'Leeds United', 'Southampton', 'Norwich City', 'Watford',
+    'Birmingham City', 'Blackburn Rovers', 'Cardiff City', 'Coventry City', 'Hull City',
+    'Ipswich Town', 'Middlesbrough', 'Millwall', 'Plymouth Argyle', 'Preston North End',
+    'Queens Park Rangers', 'Rotherham United', 'Stoke City', 'Sunderland', 'Swansea City',
+    'Bolton Wanderers', 'Bristol Rovers', 'Burton Albion', 'Cambridge United', 'Charlton Athletic',
+    'Cheltenham Town', 'Derby County', 'Exeter City', 'Fleetwood Town', 'Forest Green Rovers',
+    'Lincoln City', 'Northampton Town', 'Oxford United', 'Peterborough United', 'Port Vale',
+    'Portsmouth', 'Shrewsbury Town', 'Stevenage', 'Wigan Athletic', 'Wycombe Wanderers',
+    'AFC Wimbledon', 'Accrington Stanley', 'Barrow', 'Bradford City', 'Carlisle United',
+    'Colchester United', 'Crawley Town', 'Crewe Alexandra', 'Doncaster Rovers', 'Gillingham',
+    'Grimsby Town', 'Harrogate Town', 'Mansfield Town', 'Milton Keynes Dons', 'Morecambe',
+    'Newport County', 'Notts County', 'Salford City', 'Stockport County', 'Sutton United',
+    'Tranmere Rovers', 'Wrexham', 'Aldershot Town', 'Altrincham', 'Barnet',
+    'Boreham Wood', 'Bromley', 'Chesterfield', 'Dagenham & Redbridge', 'Dorking Wanderers',
+    'Eastleigh', 'Ebbsfleet United', 'FC Halifax Town', 'Gateshead', 'Kidderminster Harriers',
+    'Maidenhead United', 'Oldham Athletic', 'Rochdale', 'Solihull Moors', 'Southend United',
+    'Torquay United', 'Wealdstone', 'Woking', 'Yeovil Town', 'York City'
+  ];
 
-const CLUB_SUFFIXES = [
-  'United', 'City', 'Town', 'FC', 'Rovers', 'Wanderers', 'Athletic', 'Albion',
-  'County', 'Rangers', 'Hotspur', 'Villa', 'Wednesday', 'Forest', 'Orient'
-];
+  const colors = [
+    '#FF0000', '#0000FF', '#00FF00', '#FFFF00', '#FF00FF', '#00FFFF',
+    '#800000', '#008000', '#000080', '#808000', '#800080', '#008080',
+    '#FFA500', '#FFC0CB', '#A52A2A', '#808080', '#000000', '#FFFFFF'
+  ];
 
-const FIRST_NAMES = [
-  'James', 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Joseph',
-  'Thomas', 'Christopher', 'Charles', 'Daniel', 'Matthew', 'Anthony', 'Mark',
-  'Donald', 'Steven', 'Paul', 'Andrew', 'Joshua', 'Kenneth', 'Kevin', 'Brian',
-  'George', 'Timothy', 'Ronald', 'Jason', 'Edward', 'Jeffrey', 'Ryan', 'Jacob',
-  'Gary', 'Nicholas', 'Eric', 'Jonathan', 'Stephen', 'Larry', 'Justin', 'Scott',
-  'Brandon', 'Benjamin', 'Samuel', 'Gregory', 'Alexander', 'Patrick', 'Frank'
-];
-
-const LAST_NAMES = [
-  'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
-  'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson',
-  'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Perez', 'Thompson',
-  'White', 'Harris', 'Sanchez', 'Clark', 'Ramirez', 'Lewis', 'Robinson', 'Walker',
-  'Young', 'Allen', 'King', 'Wright', 'Scott', 'Torres', 'Nguyen', 'Hill', 'Flores',
-  'Green', 'Adams', 'Nelson', 'Baker', 'Hall', 'Rivera', 'Campbell', 'Mitchell'
-];
-
-export function generateTeams(count: number = 100): Team[] {
-  const rng = new SeededRandom(12345);
   const teams: Team[] = [];
-  const usedNames = new Set<string>();
+  const teamsPerTier = 20;
 
   for (let i = 0; i < count; i++) {
-    let name: string;
-    do {
-      const city = rng.choice(CITIES);
-      const suffix = rng.choice(CLUB_SUFFIXES);
-      name = `${city} ${suffix}`;
-    } while (usedNames.has(name));
-    
-    usedNames.add(name);
-    
-    const tier = Math.floor(i / 20) + 1; // 20 teams per tier
+    const tier = Math.floor(i / teamsPerTier) + 1;
+    const baseElo = 1200 - (tier - 1) * 200; // Tier 1: ~1200, Tier 5: ~400
+    const eloVariation = Math.random() * 200 - 100; // ±100 variation
     
     teams.push({
       id: crypto.randomUUID(),
-      name,
+      name: teamNames[i % teamNames.length] + (i >= teamNames.length ? ` ${Math.floor(i / teamNames.length) + 1}` : ''),
       tier,
-      primary_color: `#${Math.floor(rng.next() * 16777215).toString(16).padStart(6, '0')}`,
-      secondary_color: `#${Math.floor(rng.next() * 16777215).toString(16).padStart(6, '0')}`,
-      elo: 1000.0
+      crest_url: null,
+      primary_color: colors[Math.floor(Math.random() * colors.length)],
+      secondary_color: colors[Math.floor(Math.random() * colors.length)],
+      elo: Math.max(300, baseElo + eloVariation),
+      created_at: new Date().toISOString()
     });
   }
 
   return teams;
 }
 
-export function generatePlayersForTeam(team: Team, count: number = 23): Player[] {
-  const rng = new SeededRandom(team.name.charCodeAt(0) * 1000);
-  const players: Player[] = [];
-  
-  // Position distribution: 2 GK, 8 DF, 8 MF, 5 FW
-  const positions: Array<'GK' | 'DF' | 'MF' | 'FW'> = [
-    'GK', 'GK',
-    'DF', 'DF', 'DF', 'DF', 'DF', 'DF', 'DF', 'DF',
-    'MF', 'MF', 'MF', 'MF', 'MF', 'MF', 'MF', 'MF',
-    'FW', 'FW', 'FW', 'FW', 'FW'
+export function generatePlayersForTeam(team: Team, count: number): Player[] {
+  const firstNames = [
+    'James', 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Joseph',
+    'Thomas', 'Christopher', 'Charles', 'Daniel', 'Matthew', 'Anthony', 'Mark',
+    'Donald', 'Steven', 'Paul', 'Andrew', 'Joshua', 'Kenneth', 'Kevin', 'Brian',
+    'George', 'Timothy', 'Ronald', 'Jason', 'Edward', 'Jeffrey', 'Ryan'
   ];
 
-  for (let i = 0; i < Math.min(count, positions.length); i++) {
-    const firstName = rng.choice(FIRST_NAMES);
-    const lastName = rng.choice(LAST_NAMES);
-    const position = positions[i];
-    
-    // Generate attributes based on position
-    const baseAttributes = {
-      pace: rng.nextInt(30, 80),
-      accel: rng.nextInt(30, 80),
-      stamina: rng.nextInt(40, 90),
-      strength: rng.nextInt(30, 80),
-      passing: rng.nextInt(30, 80),
-      vision: rng.nextInt(30, 80),
-      finishing: rng.nextInt(20, 70),
-      heading: rng.nextInt(30, 80),
-      marking: rng.nextInt(30, 80),
-      tackling: rng.nextInt(30, 80),
-      reflexes: rng.nextInt(20, 70),
-      handling: rng.nextInt(20, 70),
-      positioning: rng.nextInt(40, 85),
-      composure: rng.nextInt(30, 80)
-    };
+  const lastNames = [
+    'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
+    'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson',
+    'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Perez', 'Thompson',
+    'White', 'Harris', 'Sanchez', 'Clark', 'Ramirez', 'Lewis', 'Robinson'
+  ];
 
-    // Boost relevant attributes by position
-    if (position === 'GK') {
-      baseAttributes.reflexes = rng.nextInt(60, 95);
-      baseAttributes.handling = rng.nextInt(60, 95);
-      baseAttributes.positioning = rng.nextInt(70, 95);
-    } else if (position === 'DF') {
-      baseAttributes.marking = rng.nextInt(60, 90);
-      baseAttributes.tackling = rng.nextInt(60, 90);
-      baseAttributes.heading = rng.nextInt(60, 90);
-      baseAttributes.strength = rng.nextInt(60, 90);
-    } else if (position === 'MF') {
-      baseAttributes.passing = rng.nextInt(60, 90);
-      baseAttributes.vision = rng.nextInt(60, 90);
-      baseAttributes.stamina = rng.nextInt(70, 95);
-    } else if (position === 'FW') {
-      baseAttributes.finishing = rng.nextInt(60, 90);
-      baseAttributes.pace = rng.nextInt(60, 90);
-      baseAttributes.accel = rng.nextInt(60, 90);
+  const positions = ['GK', 'DF', 'DF', 'DF', 'DF', 'MF', 'MF', 'MF', 'MF', 'FW', 'FW'];
+  const players: Player[] = [];
+
+  // Ensure we have at least 2 GK, 8 DF, 8 MF, 5 FW
+  const positionCounts = { GK: 2, DF: 8, MF: 8, FW: 5 };
+  const positionOrder: ('GK' | 'DF' | 'MF' | 'FW')[] = [];
+
+  // Fill required positions
+  Object.entries(positionCounts).forEach(([pos, count]) => {
+    for (let i = 0; i < count; i++) {
+      positionOrder.push(pos as 'GK' | 'DF' | 'MF' | 'FW');
     }
+  });
 
+  for (let i = 0; i < count; i++) {
+    const position = positionOrder[i] || positions[Math.floor(Math.random() * positions.length)];
+    const baseElo = team.elo / 2; // Player base ELO is roughly half team ELO
+    const eloVariation = Math.random() * 200 - 100; // ±100 variation
+    
+    // Position-based attribute generation
+    const attributes = generatePlayerAttributes(position);
+    
     players.push({
       id: crypto.randomUUID(),
       team_id: team.id,
-      name: `${firstName} ${lastName}`,
+      name: `${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`,
       position,
-      age: rng.nextInt(18, 35),
-      height_cm: rng.nextInt(165, 200),
-      weight_kg: rng.nextInt(60, 95),
-      foot: rng.next() > 0.8 ? 'L' : 'R',
-      base_elo: 500.0,
-      current_elo: 500.0,
-      attributes: baseAttributes
+      age: Math.floor(Math.random() * 20) + 18, // 18-37
+      height_cm: Math.floor(Math.random() * 30) + 170, // 170-199cm
+      weight_kg: Math.floor(Math.random() * 30) + 65, // 65-94kg
+      foot: Math.random() > 0.8 ? 'L' : 'R', // 20% left-footed
+      base_elo: Math.max(200, baseElo + eloVariation),
+      current_elo: Math.max(200, baseElo + eloVariation),
+      attributes,
+      created_at: new Date().toISOString()
     });
   }
 
   return players;
 }
 
-export function calculateOdds(homeElo: number, awayElo: number, homeAdvantage: number = 50): Odds {
-  const eloDiff = homeElo - awayElo + homeAdvantage;
+function generatePlayerAttributes(position: string) {
+  const base = 50;
+  const variation = 30;
   
-  // Logistic function for win probability
-  const homeWinProb = 1 / (1 + Math.pow(10, -eloDiff / 400));
-  const awayWinProb = 1 / (1 + Math.pow(10, eloDiff / 400));
-  
-  // Draw probability (higher for closer teams)
-  const drawProb = 0.25 + (0.1 * Math.exp(-Math.abs(eloDiff) / 200));
-  
-  // Normalize probabilities
-  const total = homeWinProb + awayWinProb + drawProb;
-  const normalizedHome = homeWinProb / total;
-  const normalizedAway = awayWinProb / total;
-  const normalizedDraw = drawProb / total;
-  
-  // Apply bookmaker margin (5%)
-  const margin = 1.05;
-  
-  return {
-    home: parseFloat((margin / normalizedHome).toFixed(2)),
-    draw: parseFloat((margin / normalizedDraw).toFixed(2)),
-    away: parseFloat((margin / normalizedAway).toFixed(2))
+  const attributes = {
+    pace: base + Math.floor(Math.random() * variation),
+    accel: base + Math.floor(Math.random() * variation),
+    stamina: base + Math.floor(Math.random() * variation),
+    strength: base + Math.floor(Math.random() * variation),
+    passing: base + Math.floor(Math.random() * variation),
+    vision: base + Math.floor(Math.random() * variation),
+    finishing: base + Math.floor(Math.random() * variation),
+    heading: base + Math.floor(Math.random() * variation),
+    marking: base + Math.floor(Math.random() * variation),
+    tackling: base + Math.floor(Math.random() * variation),
+    reflexes: base + Math.floor(Math.random() * variation),
+    handling: base + Math.floor(Math.random() * variation),
+    positioning: base + Math.floor(Math.random() * variation),
+    composure: base + Math.floor(Math.random() * variation)
   };
+
+  // Position-specific boosts
+  switch (position) {
+    case 'GK':
+      attributes.reflexes += 20;
+      attributes.handling += 20;
+      attributes.positioning += 15;
+      break;
+    case 'DF':
+      attributes.marking += 15;
+      attributes.tackling += 15;
+      attributes.heading += 10;
+      attributes.strength += 10;
+      break;
+    case 'MF':
+      attributes.passing += 15;
+      attributes.vision += 15;
+      attributes.stamina += 10;
+      break;
+    case 'FW':
+      attributes.finishing += 20;
+      attributes.pace += 15;
+      attributes.accel += 10;
+      break;
+  }
+
+  // Cap at 99
+  Object.keys(attributes).forEach(key => {
+    attributes[key as keyof typeof attributes] = Math.min(99, attributes[key as keyof typeof attributes]);
+  });
+
+  return attributes;
 }
 
-export function calculateEloChange(
-  playerElo: number,
-  teamResult: number, // 1 = win, 0.5 = draw, 0 = loss
-  performanceBonus: number = 0,
-  kFactor: number = 32
+export function updatePlayerElo(
+  player: Player,
+  matchResult: 'win' | 'draw' | 'loss',
+  performance: {
+    goals?: number;
+    assists?: number;
+    cleanSheet?: boolean;
+    errors?: number;
+    rating?: number;
+    minutes?: number;
+  }
 ): number {
-  const expectedScore = 1 / (1 + Math.pow(10, (1000 - playerElo) / 400));
-  const baseChange = kFactor * (teamResult - expectedScore);
-  const totalChange = baseChange + performanceBonus;
+  const K = 32; // ELO K-factor
+  const maxDelta = 40; // Cap per-match change
   
-  // Cap the change to prevent runaway ratings
-  return Math.max(-40, Math.min(40, totalChange));
+  // Base team result delta
+  let baseDelta = 0;
+  switch (matchResult) {
+    case 'win': baseDelta = 16; break;
+    case 'draw': baseDelta = 0; break;
+    case 'loss': baseDelta = -16; break;
+  }
+  
+  // Performance bonuses/penalties
+  let performanceDelta = 0;
+  if (performance.goals) performanceDelta += performance.goals * 5;
+  if (performance.assists) performanceDelta += performance.assists * 3;
+  if (performance.cleanSheet && ['GK', 'DF'].includes(player.position)) performanceDelta += 3;
+  if (performance.errors) performanceDelta -= performance.errors * 5;
+  if (performance.rating) {
+    if (performance.rating >= 8) performanceDelta += 5;
+    else if (performance.rating <= 5) performanceDelta -= 5;
+  }
+  
+  // Minutes played factor (less than 60 minutes = reduced impact)
+  const minutesFactor = performance.minutes ? Math.min(1, performance.minutes / 60) : 1;
+  
+  const totalDelta = (baseDelta + performanceDelta) * minutesFactor;
+  const cappedDelta = Math.max(-maxDelta, Math.min(maxDelta, totalDelta));
+  
+  return Math.max(100, player.current_elo + cappedDelta);
 }
