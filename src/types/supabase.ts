@@ -1271,6 +1271,7 @@ export type Database = {
           current_season: number | null
           current_wages: number | null
           elo: number
+          elo_rating: number | null
           id: string
           logo_url: string | null
           matches_played_this_season: number | null
@@ -1289,6 +1290,7 @@ export type Database = {
           current_season?: number | null
           current_wages?: number | null
           elo?: number
+          elo_rating?: number | null
           id?: string
           logo_url?: string | null
           matches_played_this_season?: number | null
@@ -1307,6 +1309,7 @@ export type Database = {
           current_season?: number | null
           current_wages?: number | null
           elo?: number
+          elo_rating?: number | null
           id?: string
           logo_url?: string | null
           matches_played_this_season?: number | null

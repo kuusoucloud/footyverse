@@ -191,6 +191,7 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
   const [liveMatches, setLiveMatches] = useState<Fixture[]>([]);
   const [upcomingMatches, setUpcomingMatches] = useState<Fixture[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   useEffect(() => {
     loadMatches();
@@ -201,8 +202,10 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
       setIsLoading(true);
       const supabase = createClient();
 
+      console.log('Loading matches...');
+
       // Get all live matches with ELO ratings
-      const { data: liveData } = await supabase
+      const { data: liveData, error: liveError } = await supabase
         .from('fixtures')
         .select(`
           *,
@@ -212,8 +215,12 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
         .eq('status', 'live')
         .order('scheduled_at', { ascending: true });
 
+      if (liveError) {
+        console.error('Live matches error:', liveError);
+      }
+
       // Get the next 20 upcoming matches with ELO ratings
-      const { data: upcomingData } = await supabase
+      const { data: upcomingData, error: upcomingError } = await supabase
         .from('fixtures')
         .select(`
           *,
@@ -224,6 +231,13 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
         .order('scheduled_at', { ascending: true })
         .limit(20);
 
+      if (upcomingError) {
+        console.error('Upcoming matches error:', upcomingError);
+      }
+
+      console.log('Raw live data:', liveData?.length || 0);
+      console.log('Raw upcoming data:', upcomingData?.length || 0);
+
       // Filter out fixtures with null teams and calculate odds
       const validLiveMatches = (liveData || []).filter(fixture => 
         fixture.home_team && fixture.away_team
@@ -232,19 +246,25 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
       const validUpcomingMatches = (upcomingData || [])
         .filter(fixture => fixture.home_team && fixture.away_team)
         .map(fixture => {
-          // Calculate odds if both teams have ELO ratings
-          if (fixture.home_team.elo_rating && fixture.away_team.elo_rating) {
-            const odds = calculateOdds(fixture.home_team.elo_rating, fixture.away_team.elo_rating);
-            return { ...fixture, odds };
-          }
-          return fixture;
+          // Calculate odds if both teams have ELO ratings, otherwise use default ELO
+          const homeElo = fixture.home_team.elo_rating || 1000;
+          const awayElo = fixture.away_team.elo_rating || 1000;
+          
+          const odds = calculateOdds(homeElo, awayElo);
+          return { ...fixture, odds };
         });
 
+      console.log('Valid live matches:', validLiveMatches.length);
+      console.log('Valid upcoming matches:', validUpcomingMatches.length);
+
+      setDebugInfo(`Live: ${validLiveMatches.length}, Upcoming: ${validUpcomingMatches.length}, Total fixtures: ${(liveData?.length || 0) + (upcomingData?.length || 0)}`);
+      
       setLiveMatches(validLiveMatches);
       setUpcomingMatches(validUpcomingMatches);
       setIsLoading(false);
     } catch (error) {
       console.error('Failed to load matches:', error);
+      setDebugInfo(`Error: ${error.message}`);
       setIsLoading(false);
     }
   };
@@ -267,6 +287,8 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold mb-2 text-white">3D Football Matches</h1>
           <p className="text-slate-300">Watch live matches and upcoming fixtures in stunning 3D</p>
+          {/* Debug info */}
+          <p className="text-xs text-slate-500 mt-2">{debugInfo}</p>
         </div>
 
         {/* Live Matches Section */}
@@ -324,6 +346,7 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
                   <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="text-xl">No Upcoming Matches</p>
                   <p className="text-sm">Fixtures may be loading or need to be generated</p>
+                  <p className="text-xs mt-2 text-slate-500">{debugInfo}</p>
                 </div>
                 <Button onClick={loadMatches} variant="outline" className="mt-4">
                   Refresh
