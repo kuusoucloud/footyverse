@@ -46,7 +46,5 @@ node_modules/
 **/tempobook/dynamic/
 **/tempobook/storyboards/
 
-# remove git history
-.git
-
-.github/
+# Supabase functions are deployed separately, not built with Next.js
+supabase/functions/
