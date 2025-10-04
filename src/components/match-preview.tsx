@@ -46,6 +46,22 @@ interface Team {
   secondary_color: string;
 }
 
+interface Formation {
+  id: string;
+  name: string;
+  display_name: string;
+  formation_code: string;
+  positions: Array<{
+    position: string;
+    x: number;
+    y: number;
+    role: string;
+  }>;
+  tactical_style: string;
+  strengths: string[];
+  weaknesses: string[];
+}
+
 interface MatchPreviewData {
   fixture: {
     id: string;
@@ -63,6 +79,8 @@ interface MatchPreviewData {
   away_players: Player[];
   home_form: string[];
   away_form: string[];
+  home_formation: Formation | null;
+  away_formation: Formation | null;
   head_to_head: any[];
 }
 
@@ -71,57 +89,67 @@ interface SoccerFieldProps {
   awayTeam: Team;
   homePlayers: Player[];
   awayPlayers: Player[];
+  homeFormation: Formation | null;
+  awayFormation: Formation | null;
 }
 
-function SoccerField({ homeTeam, awayTeam, homePlayers, awayPlayers }: SoccerFieldProps) {
-  // Formation positions for 4-4-2 (default)
-  const getPlayerPositions = (players: Player[], isHome: boolean) => {
+function SoccerField({ homeTeam, awayTeam, homePlayers, awayPlayers, homeFormation, awayFormation }: SoccerFieldProps) {
+  // Use formation positions if available, otherwise fall back to default 4-4-2
+  const getPlayerPositions = (players: Player[], formation: Formation | null, isHome: boolean) => {
     const positions: { [key: string]: { x: number; y: number } } = {};
     
-    // Sort players by position priority
-    const sortedPlayers = [...players].sort((a, b) => {
-      const positionOrder = ['GK', 'CB', 'LB', 'RB', 'CM', 'LM', 'RM', 'CAM', 'LW', 'RW', 'ST'];
-      return positionOrder.indexOf(a.position) - positionOrder.indexOf(b.position);
-    });
+    if (formation && formation.positions) {
+      // Use formation positions
+      const formationPositions = formation.positions.map(pos => ({
+        x: isHome ? pos.x : 100 - pos.x, // Mirror for away team
+        y: isHome ? pos.y : 100 - pos.y  // Mirror for away team
+      }));
+      
+      players.slice(0, 11).forEach((player, index) => {
+        if (formationPositions[index]) {
+          positions[player.id] = formationPositions[index];
+        }
+      });
+    } else {
+      // Fall back to default 4-4-2 positions
+      const defaultPositions = isHome ? [
+        { x: 10, y: 50 }, // GK
+        { x: 25, y: 20 }, // LB
+        { x: 25, y: 35 }, // CB
+        { x: 25, y: 65 }, // CB
+        { x: 25, y: 80 }, // RB
+        { x: 45, y: 15 }, // LM
+        { x: 45, y: 35 }, // CM
+        { x: 45, y: 65 }, // CM
+        { x: 45, y: 85 }, // RM
+        { x: 70, y: 35 }, // ST
+        { x: 70, y: 65 }, // ST
+      ] : [
+        { x: 90, y: 50 }, // GK
+        { x: 75, y: 80 }, // RB
+        { x: 75, y: 65 }, // CB
+        { x: 75, y: 35 }, // CB
+        { x: 75, y: 20 }, // LB
+        { x: 55, y: 85 }, // RM
+        { x: 55, y: 65 }, // CM
+        { x: 55, y: 35 }, // CM
+        { x: 55, y: 15 }, // LM
+        { x: 30, y: 65 }, // ST
+        { x: 30, y: 35 }, // ST
+      ];
 
-    // Basic 4-4-2 formation positions (percentage of field)
-    const formationPositions = isHome ? [
-      { x: 10, y: 50 }, // GK
-      { x: 25, y: 20 }, // LB
-      { x: 25, y: 35 }, // CB
-      { x: 25, y: 65 }, // CB
-      { x: 25, y: 80 }, // RB
-      { x: 45, y: 15 }, // LM
-      { x: 45, y: 35 }, // CM
-      { x: 45, y: 65 }, // CM
-      { x: 45, y: 85 }, // RM
-      { x: 70, y: 35 }, // ST
-      { x: 70, y: 65 }, // ST
-    ] : [
-      { x: 90, y: 50 }, // GK
-      { x: 75, y: 80 }, // RB
-      { x: 75, y: 65 }, // CB
-      { x: 75, y: 35 }, // CB
-      { x: 75, y: 20 }, // LB
-      { x: 55, y: 85 }, // RM
-      { x: 55, y: 65 }, // CM
-      { x: 55, y: 35 }, // CM
-      { x: 55, y: 15 }, // LM
-      { x: 30, y: 65 }, // ST
-      { x: 30, y: 35 }, // ST
-    ];
-
-    sortedPlayers.slice(0, 11).forEach((player, index) => {
-      if (formationPositions[index]) {
-        positions[player.id] = formationPositions[index];
-      }
-    });
+      players.slice(0, 11).forEach((player, index) => {
+        if (defaultPositions[index]) {
+          positions[player.id] = defaultPositions[index];
+        }
+      });
+    }
 
     return positions;
   };
 
-  const homePositions = getPlayerPositions(homePlayers, true);
-  const awayPositions = getPlayerPositions(awayPlayers, false);
+  const homePositions = getPlayerPositions(homePlayers, homeFormation, true);
+  const awayPositions = getPlayerPositions(awayPlayers, awayFormation, false);
 
   return (
     <div className="relative w-full h-96 bg-gradient-to-b from-green-400 to-green-500 rounded-lg overflow-hidden">
@@ -203,12 +231,22 @@ function SoccerField({ homeTeam, awayTeam, homePlayers, awayPlayers }: SoccerFie
         );
       })}
 
-      {/* Team names */}
+      {/* Team names and formations */}
       <div className="absolute top-4 left-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded text-sm font-semibold">
         {homeTeam.name}
+        {homeFormation && (
+          <div className="text-xs text-green-300 mt-1">
+            {homeFormation.formation_code} - {homeFormation.tactical_style}
+          </div>
+        )}
       </div>
-      <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded text-sm font-semibold">
+      <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded text-sm font-semibold text-right">
         {awayTeam.name}
+        {awayFormation && (
+          <div className="text-xs text-blue-300 mt-1">
+            {awayFormation.formation_code} - {awayFormation.tactical_style}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -316,6 +354,32 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
           .single()
       ]);
 
+      // Get team formations (primary formation for each team)
+      const [homeFormationData, awayFormationData] = await Promise.all([
+        supabase
+          .from('team_formations')
+          .select(`
+            formations (
+              id, name, display_name, formation_code, positions, 
+              tactical_style, strengths, weaknesses
+            )
+          `)
+          .eq('team_id', fixture.home_team.id)
+          .eq('preference_level', 'primary')
+          .single(),
+        supabase
+          .from('team_formations')
+          .select(`
+            formations (
+              id, name, display_name, formation_code, positions, 
+              tactical_style, strengths, weaknesses
+            )
+          `)
+          .eq('team_id', fixture.away_team.id)
+          .eq('preference_level', 'primary')
+          .single()
+      ]);
+
       // Get players for both teams
       const [homePlayersData, awayPlayersData] = await Promise.all([
         supabase
@@ -377,6 +441,8 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
         away_players: awayPlayersData.data || [],
         home_form: homeForm,
         away_form: awayForm,
+        home_formation: homeFormationData.data?.formations || null,
+        away_formation: awayFormationData.data?.formations || null,
         head_to_head: [] // Could add head-to-head data later
       });
 
@@ -548,10 +614,14 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
 
         {/* Tabs */}
         <Tabs defaultValue="field" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-4 bg-slate-800">
             <TabsTrigger value="field" className="data-[state=active]:bg-slate-700">
               <Target className="w-4 h-4 mr-2" />
               Field View
+            </TabsTrigger>
+            <TabsTrigger value="tactics" className="data-[state=active]:bg-slate-700">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Tactics
             </TabsTrigger>
             <TabsTrigger value="squads" className="data-[state=active]:bg-slate-700">
               <Users className="w-4 h-4 mr-2" />
@@ -578,12 +648,200 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
                   awayTeam={matchData.away_team}
                   homePlayers={matchData.home_players}
                   awayPlayers={matchData.away_players}
+                  homeFormation={matchData.home_formation}
+                  awayFormation={matchData.away_formation}
                 />
                 <div className="mt-4 text-center text-sm text-slate-400">
-                  Hover over players to see their details • Formation: 4-4-2
+                  Hover over players to see their details • Formations: {matchData.home_formation?.formation_code || '4-4-2'} vs {matchData.away_formation?.formation_code || '4-4-2'}
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Tactical Analysis */}
+          <TabsContent value="tactics">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Home Team Tactics */}
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center">
+                    <TrendingUp className="w-5 h-5 mr-2" />
+                    {matchData.home_team.name} Tactics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {matchData.home_formation ? (
+                    <div className="space-y-4">
+                      <div className="bg-slate-700 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-white mb-2">
+                          {matchData.home_formation.display_name}
+                        </h4>
+                        <div className="flex items-center space-x-4 mb-3">
+                          <Badge className="bg-green-600">
+                            {matchData.home_formation.formation_code}
+                          </Badge>
+                          <Badge variant="outline" className="text-slate-300">
+                            {matchData.home_formation.tactical_style.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                        <p className="text-slate-300 text-sm mb-3">
+                          {matchData.home_formation.description || 'Tactical formation setup'}
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h5 className="text-white font-semibold mb-2 flex items-center">
+                            <Star className="w-4 h-4 mr-1 text-green-400" />
+                            Strengths
+                          </h5>
+                          <div className="space-y-1">
+                            {matchData.home_formation.strengths?.map((strength, index) => (
+                              <div key={index} className="text-sm text-green-300 bg-green-900/20 px-2 py-1 rounded">
+                                {strength.replace('_', ' ')}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h5 className="text-white font-semibold mb-2 flex items-center">
+                            <Target className="w-4 h-4 mr-1 text-red-400" />
+                            Weaknesses
+                          </h5>
+                          <div className="space-y-1">
+                            {matchData.home_formation.weaknesses?.map((weakness, index) => (
+                              <div key={index} className="text-sm text-red-300 bg-red-900/20 px-2 py-1 rounded">
+                                {weakness.replace('_', ' ')}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-slate-400 text-center py-8">
+                      Formation data not available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Away Team Tactics */}
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center">
+                    <TrendingUp className="w-5 h-5 mr-2" />
+                    {matchData.away_team.name} Tactics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {matchData.away_formation ? (
+                    <div className="space-y-4">
+                      <div className="bg-slate-700 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-white mb-2">
+                          {matchData.away_formation.display_name}
+                        </h4>
+                        <div className="flex items-center space-x-4 mb-3">
+                          <Badge className="bg-blue-600">
+                            {matchData.away_formation.formation_code}
+                          </Badge>
+                          <Badge variant="outline" className="text-slate-300">
+                            {matchData.away_formation.tactical_style.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                        <p className="text-slate-300 text-sm mb-3">
+                          {matchData.away_formation.description || 'Tactical formation setup'}
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h5 className="text-white font-semibold mb-2 flex items-center">
+                            <Star className="w-4 h-4 mr-1 text-green-400" />
+                            Strengths
+                          </h5>
+                          <div className="space-y-1">
+                            {matchData.away_formation.strengths?.map((strength, index) => (
+                              <div key={index} className="text-sm text-green-300 bg-green-900/20 px-2 py-1 rounded">
+                                {strength.replace('_', ' ')}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h5 className="text-white font-semibold mb-2 flex items-center">
+                            <Target className="w-4 h-4 mr-1 text-red-400" />
+                            Weaknesses
+                          </h5>
+                          <div className="space-y-1">
+                            {matchData.away_formation.weaknesses?.map((weakness, index) => (
+                              <div key={index} className="text-sm text-red-300 bg-red-900/20 px-2 py-1 rounded">
+                                {weakness.replace('_', ' ')}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-slate-400 text-center py-8">
+                      Formation data not available
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Tactical Matchup Analysis */}
+            {matchData.home_formation && matchData.away_formation && (
+              <Card className="bg-slate-800 border-slate-700 mt-6">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center">
+                    <Activity className="w-5 h-5 mr-2" />
+                    Tactical Matchup Analysis
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="text-center">
+                      <h4 className="text-white font-semibold mb-2">Formation Battle</h4>
+                      <div className="text-2xl font-bold text-green-400 mb-1">
+                        {matchData.home_formation.formation_code}
+                      </div>
+                      <div className="text-slate-400 text-sm mb-2">vs</div>
+                      <div className="text-2xl font-bold text-blue-400">
+                        {matchData.away_formation.formation_code}
+                      </div>
+                    </div>
+                    
+                    <div className="text-center">
+                      <h4 className="text-white font-semibold mb-2">Tactical Styles</h4>
+                      <div className="space-y-2">
+                        <div className="bg-green-900/20 text-green-300 px-3 py-1 rounded text-sm">
+                          {matchData.home_formation.tactical_style.replace('_', ' ')}
+                        </div>
+                        <div className="text-slate-400 text-xs">vs</div>
+                        <div className="bg-blue-900/20 text-blue-300 px-3 py-1 rounded text-sm">
+                          {matchData.away_formation.tactical_style.replace('_', ' ')}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="text-center">
+                      <h4 className="text-white font-semibold mb-2">Key Battle Areas</h4>
+                      <div className="space-y-1 text-sm">
+                        <div className="text-slate-300">Midfield Control</div>
+                        <div className="text-slate-300">Wide Areas</div>
+                        <div className="text-slate-300">Defensive Shape</div>
+                        <div className="text-slate-300">Attacking Threat</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Team Squads */}

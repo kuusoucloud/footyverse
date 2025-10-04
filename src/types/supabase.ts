@@ -457,6 +457,51 @@ export type Database = {
           },
         ]
       }
+      formations: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_name: string
+          era: string | null
+          formation_code: string
+          id: string
+          name: string
+          popularity_rating: number
+          positions: Json
+          strengths: string[] | null
+          tactical_style: string
+          weaknesses: string[] | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_name: string
+          era?: string | null
+          formation_code: string
+          id?: string
+          name: string
+          popularity_rating?: number
+          positions: Json
+          strengths?: string[] | null
+          tactical_style: string
+          weaknesses?: string[] | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_name?: string
+          era?: string | null
+          formation_code?: string
+          id?: string
+          name?: string
+          popularity_rating?: number
+          positions?: Json
+          strengths?: string[] | null
+          tactical_style?: string
+          weaknesses?: string[] | null
+        }
+        Relationships: []
+      }
       global_season_status: {
         Row: {
           created_at: string | null
@@ -521,6 +566,68 @@ export type Database = {
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_formations: {
+        Row: {
+          created_at: string | null
+          fixture_id: string | null
+          formation_change_minute: number | null
+          formation_id: string | null
+          id: string
+          match_id: string | null
+          reason: string | null
+          team_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          fixture_id?: string | null
+          formation_change_minute?: number | null
+          formation_id?: string | null
+          id?: string
+          match_id?: string | null
+          reason?: string | null
+          team_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          fixture_id?: string | null
+          formation_change_minute?: number | null
+          formation_id?: string | null
+          id?: string
+          match_id?: string | null
+          reason?: string | null
+          team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_formations_fixture_id_fkey"
+            columns: ["fixture_id"]
+            isOneToOne: false
+            referencedRelation: "fixtures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_formations_formation_id_fkey"
+            columns: ["formation_id"]
+            isOneToOne: false
+            referencedRelation: "formations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_formations_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_formations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -1191,6 +1298,60 @@ export type Database = {
         }
         Relationships: []
       }
+      team_formations: {
+        Row: {
+          away_preference: boolean | null
+          created_at: string | null
+          formation_id: string | null
+          home_preference: boolean | null
+          id: string
+          preference_level: string
+          team_id: string | null
+          usage_frequency: number
+          vs_stronger_teams: boolean | null
+          vs_weaker_teams: boolean | null
+        }
+        Insert: {
+          away_preference?: boolean | null
+          created_at?: string | null
+          formation_id?: string | null
+          home_preference?: boolean | null
+          id?: string
+          preference_level?: string
+          team_id?: string | null
+          usage_frequency?: number
+          vs_stronger_teams?: boolean | null
+          vs_weaker_teams?: boolean | null
+        }
+        Update: {
+          away_preference?: boolean | null
+          created_at?: string | null
+          formation_id?: string | null
+          home_preference?: boolean | null
+          id?: string
+          preference_level?: string
+          team_id?: string | null
+          usage_frequency?: number
+          vs_stronger_teams?: boolean | null
+          vs_weaker_teams?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_formations_formation_id_fkey"
+            columns: ["formation_id"]
+            isOneToOne: false
+            referencedRelation: "formations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_formations_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_standings: {
         Row: {
           created_at: string | null
@@ -1799,6 +1960,10 @@ export type Database = {
       run_orchestrator_http: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      select_match_formation: {
+        Args: { p_is_home?: boolean; p_opponent_id: string; p_team_id: string }
+        Returns: string
       }
       sequence_cross_tier_rotation: {
         Args: Record<PropertyKey, never>
