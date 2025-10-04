@@ -69,7 +69,7 @@ export default function AutomatedFootballApp() {
           supabase.from('team_standings').select(`
             *,
             team:teams(name, tier, elo, primary_color, secondary_color)
-          `).order('points', { ascending: false }).limit(20)
+          `).order('points', { ascending: false }).limit(100)
         ]);
 
         setStats({
