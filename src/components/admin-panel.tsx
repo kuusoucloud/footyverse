@@ -289,28 +289,54 @@ export default function AdminPanel() {
     }
   };
 
-  const generateFixtures = async () => {
+  const generateFixtures = async (forceRegenerate = false) => {
     setLoading(true);
-    if (!autoSeeding) setStatus("Generating fixtures...");
+    setStatus("🏆 Generating fixtures for all teams...");
 
     try {
       const { data, error } = await supabase.functions.invoke(
-        "supabase-functions-seed-data",
+        "supabase-functions-generate-fixtures",
         {
-          body: { action: "generate_fixtures" },
+          body: { 
+            action: "generate_all_fixtures",
+            force_regenerate: forceRegenerate
+          },
         },
       );
 
       if (error) throw error;
-      if (!autoSeeding)
-        setStatus(`✅ ${data.message} - ${data.fixtures} fixtures created`);
+      setStatus(`✅ ${data.message} - ${data.total_fixtures} fixtures created across ${data.tiers_processed} tiers`);
       checkSystemStatus();
     } catch (error) {
       setStatus(
         `❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     } finally {
-      if (!autoSeeding) setLoading(false);
+      setLoading(false);
+    }
+  };
+
+  const regenerateFixturesForNewSeason = async () => {
+    setLoading(true);
+    setStatus("🔄 Regenerating fixtures for new season...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "supabase-functions-generate-fixtures",
+        {
+          body: { action: "regenerate_for_new_season" },
+        },
+      );
+
+      if (error) throw error;
+      setStatus(`✅ ${data.message} - ${data.total_fixtures} fixtures created for season ${data.season_number}`);
+      checkSystemStatus();
+    } catch (error) {
+      setStatus(
+        `❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -568,6 +594,48 @@ export default function AdminPanel() {
             System Controls
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <button
+              onClick={() => generateFixtures(false)}
+              disabled={loading}
+              className="glass-button p-4 rounded-lg text-left hover:glass-primary transition-all duration-300 disabled:opacity-50"
+            >
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-green-400" />
+                <div>
+                  <div className="font-medium text-white">Generate Fixtures</div>
+                  <div className="text-xs text-slate-400">Create season schedule</div>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => generateFixtures(true)}
+              disabled={loading}
+              className="glass-button p-4 rounded-lg text-left hover:glass-primary transition-all duration-300 disabled:opacity-50"
+            >
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-yellow-400" />
+                <div>
+                  <div className="font-medium text-white">Force Regenerate</div>
+                  <div className="text-xs text-slate-400">Overwrite existing fixtures</div>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={regenerateFixturesForNewSeason}
+              disabled={loading}
+              className="glass-button p-4 rounded-lg text-left hover:glass-primary transition-all duration-300 disabled:opacity-50"
+            >
+              <div className="flex items-center gap-3">
+                <Trophy className="h-5 w-5 text-purple-400" />
+                <div>
+                  <div className="font-medium text-white">New Season Fixtures</div>
+                  <div className="text-xs text-slate-400">Generate for new season</div>
+                </div>
+              </div>
+            </button>
+
             <button
               onClick={() => handleAction('force_match_generation')}
               disabled={loading}

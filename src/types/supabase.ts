@@ -226,6 +226,45 @@ export type Database = {
           },
         ]
       }
+      fixture_generation_log: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          fixtures_by_tier: Json | null
+          generation_type: string
+          id: string
+          season_number: number
+          started_at: string | null
+          status: string | null
+          total_fixtures: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          fixtures_by_tier?: Json | null
+          generation_type: string
+          id?: string
+          season_number: number
+          started_at?: string | null
+          status?: string | null
+          total_fixtures?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          fixtures_by_tier?: Json | null
+          generation_type?: string
+          id?: string
+          season_number?: number
+          started_at?: string | null
+          status?: string | null
+          total_fixtures?: number | null
+        }
+        Relationships: []
+      }
       fixtures: {
         Row: {
           away_team_id: string | null
@@ -1371,6 +1410,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_generate_fixtures: {
+        Args: { force_regenerate?: boolean }
+        Returns: string
+      }
       apply_match_injury: {
         Args: { injury_severity?: string; match_id: string; player_id: string }
         Returns: string
@@ -1392,6 +1435,10 @@ export type Database = {
         Returns: undefined
       }
       force_orchestration_run: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      generate_fixtures_for_new_season: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
