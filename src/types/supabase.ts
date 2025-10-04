@@ -370,6 +370,30 @@ export type Database = {
           },
         ]
       }
+      orchestration_status: {
+        Row: {
+          created_at: string | null
+          id: number
+          is_running: boolean | null
+          last_run: string | null
+          run_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          is_running?: boolean | null
+          last_run?: string | null
+          run_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          is_running?: boolean | null
+          last_run?: string | null
+          run_count?: number | null
+        }
+        Relationships: []
+      }
       player_injuries: {
         Row: {
           actual_return: string | null
@@ -1124,6 +1148,18 @@ export type Database = {
       generate_season_fixtures: {
         Args: { p_season_id: string }
         Returns: number
+      }
+      mark_orchestration_completed: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      mark_orchestration_started: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      should_run_orchestration: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       start_continuous_matches: {
         Args: Record<PropertyKey, never>
