@@ -87,7 +87,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
           `).order('points', { ascending: false }).limit(100),
           supabase.from('transfers').select(`
             *,
-            player:players(name, position, age, overall_rating),
+            player:player_id(name, position, age, overall_rating),
             from_team:from_team_id(name, crest_url, primary_color),
             to_team:to_team_id(name, crest_url, primary_color)
           `).order('created_at', { ascending: false }).limit(20),
@@ -98,7 +98,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
             severity, 
             recovery_weeks_needed,
             recovery_weeks_completed,
-            player:players(name, team:teams(name))
+            player:player_id(name, team:team_id(name))
           `).eq('is_active', true).limit(50)
         ]);
 
@@ -120,11 +120,28 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
         });
 
         setLiveMatches(fixturesRes.data || []);
-        setStandings(standingsRes.data || []);
-        setRecentTransfers(transfersRes.data || []);
+        
+        // Filter out standings with null teams
+        const validStandings = (standingsRes.data || []).filter(standing => 
+          standing.team && standing.team.tier !== null
+        );
+        setStandings(validStandings);
+        
+        // Filter out transfers with null data
+        const validTransfers = (transfersRes.data || []).filter(transfer => 
+          transfer.player && (transfer.from_team || transfer.to_team)
+        );
+        setRecentTransfers(validTransfers);
+        
         setSeasonProgress(seasonRes.data || []);
         setGlobalSeason(globalSeasonRes.data || null);
-        setActiveInjuries(injuriesRes.data || []);
+        
+        // Filter out injuries with null player data
+        const validInjuries = (injuriesRes.data || []).filter(injury => 
+          injury.player && injury.player.name
+        );
+        setActiveInjuries(validInjuries);
+        
         setIsConnected(true);
 
       } catch (error) {

@@ -615,6 +615,7 @@ export type Database = {
           expected_return: string | null
           id: string
           injury_type: string
+          is_active: boolean | null
           matches_at_injury: number | null
           occurred_at: string | null
           player_id: string | null
@@ -628,6 +629,7 @@ export type Database = {
           expected_return?: string | null
           id?: string
           injury_type: string
+          is_active?: boolean | null
           matches_at_injury?: number | null
           occurred_at?: string | null
           player_id?: string | null
@@ -641,6 +643,7 @@ export type Database = {
           expected_return?: string | null
           id?: string
           injury_type?: string
+          is_active?: boolean | null
           matches_at_injury?: number | null
           occurred_at?: string | null
           player_id?: string | null
@@ -939,6 +942,7 @@ export type Database = {
           market_value: number | null
           name: string
           nationality: string | null
+          overall_rating: number | null
           position: string
           retirement_probability: number | null
           shirt_number: number | null
@@ -976,6 +980,7 @@ export type Database = {
           market_value?: number | null
           name: string
           nationality?: string | null
+          overall_rating?: number | null
           position: string
           retirement_probability?: number | null
           shirt_number?: number | null
@@ -1013,6 +1018,7 @@ export type Database = {
           market_value?: number | null
           name?: string
           nationality?: string | null
+          overall_rating?: number | null
           position?: string
           retirement_probability?: number | null
           shirt_number?: number | null
@@ -1458,6 +1464,8 @@ export type Database = {
           agent_fee: number | null
           contract_length: number | null
           created_at: string | null
+          date: string | null
+          fee: number | null
           from_team_id: string | null
           id: string
           player_id: string | null
@@ -1473,6 +1481,8 @@ export type Database = {
           agent_fee?: number | null
           contract_length?: number | null
           created_at?: string | null
+          date?: string | null
+          fee?: number | null
           from_team_id?: string | null
           id?: string
           player_id?: string | null
@@ -1488,6 +1498,8 @@ export type Database = {
           agent_fee?: number | null
           contract_length?: number | null
           created_at?: string | null
+          date?: string | null
+          fee?: number | null
           from_team_id?: string | null
           id?: string
           player_id?: string | null
