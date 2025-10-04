@@ -25,7 +25,7 @@ interface Fixture {
   };
   scheduled_at: string;
   status: string;
-  sequence_order?: number;
+  round?: number;
 }
 
 interface MatchCardProps {
@@ -67,7 +67,7 @@ function MatchCard({ fixture, onSelect, isLive = false }: MatchCardProps) {
           </Badge>
           <div className="text-sm text-gray-500">
             Tier {fixture.home_team?.tier || 'N/A'}
-            {fixture.sequence_order && ` • #${fixture.sequence_order}`}
+            {fixture.round && ` • Round ${fixture.round}`}
           </div>
         </div>
       </CardHeader>
@@ -122,7 +122,7 @@ interface MatchSelectionProps {
 }
 
 export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
-  const [liveMatch, setLiveMatch] = useState<Fixture | null>(null);
+  const [liveMatches, setLiveMatches] = useState<Fixture[]>([]);
   const [upcomingMatches, setUpcomingMatches] = useState<Fixture[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -135,7 +135,7 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
       setIsLoading(true);
       const supabase = createClient();
 
-      // Get the current live match
+      // Get all live matches
       const { data: liveData } = await supabase
         .from('fixtures')
         .select(`
@@ -144,10 +144,9 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
           away_team:teams!fixtures_away_team_id_fkey(id, name, tier, logo_url, crest_url)
         `)
         .eq('status', 'live')
-        .order('sequence_order', { ascending: true })
-        .limit(1);
+        .order('scheduled_at', { ascending: true });
 
-      // Get the next 5 upcoming matches in sequence order
+      // Get the next 20 upcoming matches
       const { data: upcomingData } = await supabase
         .from('fixtures')
         .select(`
@@ -156,17 +155,18 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
           away_team:teams!fixtures_away_team_id_fkey(id, name, tier, logo_url, crest_url)
         `)
         .eq('status', 'scheduled')
-        .not('sequence_order', 'is', null)
-        .order('sequence_order', { ascending: true })
-        .limit(5);
+        .order('scheduled_at', { ascending: true })
+        .limit(20);
 
       // Filter out fixtures with null teams
-      const validLiveMatch = liveData?.[0] && liveData[0].home_team && liveData[0].away_team ? liveData[0] : null;
+      const validLiveMatches = (liveData || []).filter(fixture => 
+        fixture.home_team && fixture.away_team
+      );
       const validUpcomingMatches = (upcomingData || []).filter(fixture => 
         fixture.home_team && fixture.away_team
       );
 
-      setLiveMatch(validLiveMatch);
+      setLiveMatches(validLiveMatches);
       setUpcomingMatches(validUpcomingMatches);
       setIsLoading(false);
     } catch (error) {
@@ -195,25 +195,28 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
           <p className="text-slate-300">Watch live matches and upcoming fixtures in stunning 3D</p>
         </div>
 
-        {/* Live Match Section */}
-        {liveMatch && (
+        {/* Live Matches Section */}
+        {liveMatches.length > 0 && (
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-4 text-white flex items-center gap-2">
               <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-              Live Match
+              Live Matches ({liveMatches.length})
             </h2>
-            <div className="max-w-md mx-auto">
-              <MatchCard
-                fixture={liveMatch}
-                onSelect={handleMatchSelect}
-                isLive={true}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {liveMatches.map((fixture) => (
+                <MatchCard
+                  key={fixture.id}
+                  fixture={fixture}
+                  onSelect={handleMatchSelect}
+                  isLive={true}
+                />
+              ))}
             </div>
           </div>
         )}
 
-        {/* No Live Match */}
-        {!liveMatch && (
+        {/* No Live Matches */}
+        {liveMatches.length === 0 && (
           <div className="mb-8">
             <Card className="max-w-md mx-auto bg-slate-800 border-slate-700">
               <CardContent className="p-8 text-center">
@@ -234,9 +237,9 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
         <div>
           <h2 className="text-2xl font-bold mb-4 text-white flex items-center gap-2">
             <Calendar className="w-6 h-6 text-blue-400" />
-            Next 5 Matches
+            Upcoming Matches ({upcomingMatches.length})
             <span className="text-sm font-normal text-slate-400">
-              (Tier Rotation: T1 → T2 → T3 → T4 → T5)
+              (Next 20 fixtures)
             </span>
           </h2>
           
@@ -254,11 +257,11 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              {upcomingMatches.map((fixture, index) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {upcomingMatches.slice(0, 12).map((fixture, index) => (
                 <div key={fixture.id} className="relative">
                   <div className="absolute -top-2 -left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full z-10">
-                    Next {index + 1}
+                    #{index + 1}
                   </div>
                   <MatchCard
                     fixture={fixture}
@@ -270,20 +273,31 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
           )}
         </div>
 
-        {/* Tier Rotation Info */}
+        {/* Match Statistics */}
         <div className="mt-8 bg-slate-800/50 rounded-lg p-6 border border-slate-700">
-          <h3 className="text-lg font-semibold text-white mb-3">Match Rotation System</h3>
-          <div className="grid grid-cols-5 gap-4 text-center">
-            {[1, 2, 3, 4, 5].map((tier) => (
-              <div key={tier} className="bg-slate-700 rounded-lg p-3">
-                <div className="text-2xl font-bold text-white">T{tier}</div>
-                <div className="text-xs text-slate-400">Tier {tier}</div>
+          <h3 className="text-lg font-semibold text-white mb-3">Match Statistics</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div className="bg-slate-700 rounded-lg p-3">
+              <div className="text-2xl font-bold text-red-400">{liveMatches.length}</div>
+              <div className="text-xs text-slate-400">Live Matches</div>
+            </div>
+            <div className="bg-slate-700 rounded-lg p-3">
+              <div className="text-2xl font-bold text-blue-400">{upcomingMatches.length}</div>
+              <div className="text-xs text-slate-400">Scheduled</div>
+            </div>
+            <div className="bg-slate-700 rounded-lg p-3">
+              <div className="text-2xl font-bold text-green-400">
+                {new Set([...liveMatches, ...upcomingMatches].map(f => f.home_team?.tier)).size}
               </div>
-            ))}
+              <div className="text-xs text-slate-400">Active Tiers</div>
+            </div>
+            <div className="bg-slate-700 rounded-lg p-3">
+              <div className="text-2xl font-bold text-yellow-400">
+                {liveMatches.length + upcomingMatches.length}
+              </div>
+              <div className="text-xs text-slate-400">Total Fixtures</div>
+            </div>
           </div>
-          <p className="text-sm text-slate-400 mt-4 text-center">
-            Matches rotate through tiers: one match from Tier 1, then Tier 2, then Tier 3, then Tier 4, then Tier 5, then back to Tier 1
-          </p>
         </div>
       </div>
     </div>
