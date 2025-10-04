@@ -23,7 +23,8 @@ import {
   Shield,
   Star,
   Award,
-  Flame
+  Flame,
+  AlertTriangle
 } from "lucide-react";
 
 // Use the centralized client
@@ -37,7 +38,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
   const [stats, setStats] = useState<any>({});
   const [liveMatches, setLiveMatches] = useState<any[]>([]);
   const [upcomingMatches, setUpcomingMatches] = useState<any[]>([]);
-  const [upcomingTransfers, setRecentTransfers] = useState<any[]>([]);
+  const [recentTransfers, setRecentTransfers] = useState<any[]>([]);
   const [orchestrationStatus, setOrchestrationStatus] = useState<any>({});
   const [standings, setStandings] = useState<any[]>([]);
   const [selectedTier, setSelectedTier] = useState(1);
