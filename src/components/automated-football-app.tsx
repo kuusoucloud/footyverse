@@ -61,30 +61,24 @@ export default function AutomatedFootballApp() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get basic stats and standings
-        const [teamsRes, playersRes, matchesRes, transfersRes, orchestrationRes, standingsRes] = await Promise.all([
+        // Get basic stats and standings using existing schema
+        const [teamsRes, playersRes, fixturesRes, standingsRes] = await Promise.all([
           supabase.from('teams').select('id'),
           supabase.from('players').select('id'),
-          supabase.from('matches').select('*').eq('status', 'live').limit(10),
-          supabase.from('transfers').select(`
+          supabase.from('fixtures').select('*').eq('status', 'live').limit(10),
+          supabase.from('team_standings').select(`
             *,
-            player:players(name, position),
-            from_team:teams!transfers_from_team_id_fkey(name),
-            to_team:teams!transfers_to_team_id_fkey(name)
-          `).order('created_at', { ascending: false }).limit(10),
-          supabase.from('orchestration_status').select('*').eq('id', 1).single(),
-          supabase.rpc('get_league_standings', { league_tier: selectedTier })
+            team:teams(name, tier, elo, primary_color, secondary_color)
+          `).order('points', { ascending: false }).limit(20)
         ]);
 
         setStats({
           teams: teamsRes.data?.length || 0,
           players: playersRes.data?.length || 0,
-          liveMatches: matchesRes.data?.length || 0
+          liveMatches: fixturesRes.data?.length || 0
         });
 
-        setLiveMatches(matchesRes.data || []);
-        setRecentTransfers(transfersRes.data || []);
-        setOrchestrationStatus(orchestrationRes.data || {});
+        setLiveMatches(fixturesRes.data || []);
         setStandings(standingsRes.data || []);
         setIsConnected(true);
 
@@ -102,42 +96,31 @@ export default function AutomatedFootballApp() {
 
   // Subscribe to real-time updates for immediate changes
   useEffect(() => {
-    const matchesChannel = supabase
-      .channel('live-matches')
+    const fixturesChannel = supabase
+      .channel('live-fixtures')
       .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'matches' },
+        { event: '*', schema: 'public', table: 'fixtures' },
         () => {
-          // Refresh data when matches change
+          // Refresh data when fixtures change
           window.location.reload();
         }
       )
       .subscribe();
 
-    const orchestrationChannel = supabase
-      .channel('orchestration-status')
+    const standingsChannel = supabase
+      .channel('team-standings')
       .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'orchestration_status' },
-        (payload) => {
-          setOrchestrationStatus(payload.new);
-        }
-      )
-      .subscribe();
-
-    const transfersChannel = supabase
-      .channel('transfers')
-      .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'transfers' },
+        { event: '*', schema: 'public', table: 'team_standings' },
         () => {
-          // Refresh data when new transfers happen
+          // Refresh data when standings change
           setTimeout(() => window.location.reload(), 1000);
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(matchesChannel);
-      supabase.removeChannel(orchestrationChannel);
-      supabase.removeChannel(transfersChannel);
+      supabase.removeChannel(fixturesChannel);
+      supabase.removeChannel(standingsChannel);
     };
   }, []);
 
@@ -304,34 +287,35 @@ export default function AutomatedFootballApp() {
                       <div className="col-span-1">L</div>
                       <div className="col-span-1">GD</div>
                       <div className="col-span-1">Pts</div>
-                      <div className="col-span-1">Budget</div>
+                      <div className="col-span-1">ELO</div>
                     </div>
-                    {standings.map((team, index) => (
-                      <div key={team.team_id} className="grid grid-cols-12 gap-2 items-center py-2 hover:bg-gray-50 rounded">
+                    {standings.filter(s => s.team?.tier === selectedTier).map((standing, index) => (
+                      <div key={standing.id} className="grid grid-cols-12 gap-2 items-center py-2 hover:bg-gray-50 rounded">
                         <div className="col-span-1 flex items-center gap-1">
                           <span className="font-medium">{index + 1}</span>
                           {getPositionIcon(index + 1)}
                         </div>
                         <div className="col-span-4">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{team.team_name}</span>
-                            <Badge className={`text-xs ${getWealthColor(team.wealth_category)}`}>
-                              {team.wealth_category?.replace('_', ' ')}
-                            </Badge>
+                            <div 
+                              className="w-4 h-4 rounded-full border"
+                              style={{ backgroundColor: standing.team?.primary_color }}
+                            />
+                            <span className="font-medium">{standing.team?.name}</span>
                           </div>
                         </div>
-                        <div className="col-span-1 text-sm">{team.matches_played}</div>
-                        <div className="col-span-1 text-sm text-green-600">{team.wins}</div>
-                        <div className="col-span-1 text-sm text-yellow-600">{team.draws}</div>
-                        <div className="col-span-1 text-sm text-red-600">{team.losses}</div>
+                        <div className="col-span-1 text-sm">{standing.played}</div>
+                        <div className="col-span-1 text-sm text-green-600">{standing.won}</div>
+                        <div className="col-span-1 text-sm text-yellow-600">{standing.drawn}</div>
+                        <div className="col-span-1 text-sm text-red-600">{standing.lost}</div>
                         <div className="col-span-1 text-sm">
-                          <span className={team.goal_difference >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {team.goal_difference >= 0 ? '+' : ''}{team.goal_difference}
+                          <span className={standing.gd >= 0 ? 'text-green-600' : 'text-red-600'}>
+                            {standing.gd >= 0 ? '+' : ''}{standing.gd}
                           </span>
                         </div>
-                        <div className="col-span-1 text-sm font-bold">{team.points}</div>
+                        <div className="col-span-1 text-sm font-bold">{standing.points}</div>
                         <div className="col-span-1 text-xs text-gray-600">
-                          {formatCurrency(team.transfer_budget)}
+                          {Math.round(standing.team?.elo || 0)}
                         </div>
                       </div>
                     ))}
@@ -358,14 +342,14 @@ export default function AutomatedFootballApp() {
               <CardContent>
                 {liveMatches.length > 0 ? (
                   <div className="space-y-4">
-                    {liveMatches.map((match) => (
-                      <div key={match.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                    {liveMatches.map((fixture) => (
+                      <div key={fixture.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
                         <div className="flex items-center gap-3">
                           <Badge variant="destructive" className="animate-pulse">LIVE</Badge>
                           <div>
-                            <p className="font-semibold">{match.home_team_name} vs {match.away_team_name}</p>
+                            <p className="font-semibold">Match ID: {fixture.id.slice(0, 8)}</p>
                             <p className="text-sm text-gray-600">
-                              {match.home_score} - {match.away_score} • {match.minute}'
+                              Status: {fixture.status} • Round {fixture.round}
                             </p>
                           </div>
                         </div>
