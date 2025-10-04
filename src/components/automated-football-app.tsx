@@ -28,6 +28,34 @@ export default function AutomatedFootballApp() {
   const [wealthStats, setWealthStats] = useState<any>({});
   const [isAutoRunning, setIsAutoRunning] = useState(true);
 
+  // Initialize ecosystem immediately on component mount
+  useEffect(() => {
+    const initializeEcosystem = async () => {
+      try {
+        console.log('🏗️ Initializing football ecosystem...');
+        
+        // Check if we have teams, if not create the ecosystem
+        const { data: teams } = await supabase.from('teams').select('id').limit(1);
+        
+        if (!teams || teams.length === 0) {
+          console.log('🚀 Creating complete football ecosystem...');
+          await supabase.functions.invoke('supabase-functions-football-ecosystem', {
+            body: { action: 'full_setup' }
+          });
+        }
+        
+        // Force orchestration to run immediately
+        console.log('🎮 Starting orchestration...');
+        await supabase.functions.invoke('supabase-functions-match-orchestrator');
+        
+      } catch (error) {
+        console.error('Initialization error:', error);
+      }
+    };
+
+    initializeEcosystem();
+  }, []); // Run once on mount
+
   // Auto-orchestration interval
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -36,18 +64,24 @@ export default function AutomatedFootballApp() {
       if (!isAutoRunning) return;
       
       try {
-        await supabase.functions.invoke('supabase-functions-match-orchestrator');
+        console.log('🎮 Running orchestration...');
+        const { data, error } = await supabase.functions.invoke('supabase-functions-match-orchestrator');
+        if (error) {
+          console.error('Orchestration error:', error);
+        } else {
+          console.log('✅ Orchestration result:', data);
+        }
       } catch (error) {
         console.error('Orchestration error:', error);
       }
     };
 
     if (isAutoRunning) {
-      // Run immediately
+      // Run immediately on load
       runOrchestration();
       
-      // Then run every 2 minutes
-      interval = setInterval(runOrchestration, 2 * 60 * 1000);
+      // Then run every 30 seconds for more frequent updates
+      interval = setInterval(runOrchestration, 30 * 1000);
     }
 
     return () => {
@@ -108,7 +142,7 @@ export default function AutomatedFootballApp() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000); // Update every 30 seconds
+    const interval = setInterval(fetchData, 10000); // Update every 10 seconds for faster updates
 
     return () => clearInterval(interval);
   }, []);

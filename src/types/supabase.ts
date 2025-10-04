@@ -1145,6 +1145,10 @@ export type Database = {
         Args: { player_age: number; player_attributes: Json; team_tier: number }
         Returns: number
       }
+      force_orchestration_run: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       generate_season_fixtures: {
         Args: { p_season_id: string }
         Returns: number
