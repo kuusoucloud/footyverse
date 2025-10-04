@@ -1761,6 +1761,10 @@ export type Database = {
         Args: { tier_num: number }
         Returns: undefined
       }
+      proper_round_robin_sequencing: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       run_orchestrator_http: {
         Args: Record<PropertyKey, never>
         Returns: undefined
