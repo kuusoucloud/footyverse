@@ -2,28 +2,29 @@
 
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { 
-  Activity, 
   Users, 
   Trophy, 
   TrendingUp, 
   Clock, 
-  DollarSign,
+  Play, 
   Calendar,
-  AlertCircle,
-  Crown,
-  ArrowUp,
-  ArrowDown,
+  ArrowRightLeft,
+  DollarSign,
+  Activity,
   Target,
-  Play,
-  AlertTriangle,
-  Heart
-} from 'lucide-react';
+  Zap,
+  Heart,
+  Shield,
+  Star,
+  Award,
+  Flame
+} from "lucide-react";
 
 // Use the centralized client
 const supabase = createClient();
@@ -117,16 +118,19 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
 
         setStats({
           totalTeams: teamsRes.data?.length || 0,
-          totalTiers: 5,
-          totalPlayers: playerStats.total,
-          fitPlayers: playerStats.fit,
-          injuredPlayers: playerStats.injured,
-          retiredPlayers: playerStats.retired,
-          liveMatches: fixturesRes.data?.length || 0
+          totalPlayers: playersRes.data?.length || 0,
+          injuredPlayers: playersRes.data?.filter(p => p.injury_status).length || 0,
+          liveMatches: fixturesRes.data?.length || 0,
+          upcomingMatches: upcomingRes.data?.length || 0,
+          totalTransfers: transfersRes.data?.length || 0,
+          currentSeason: globalSeasonRes.data?.[0]?.season_number || 1,
+          matchesPlayed: seasonRes.data?.reduce((acc, s) => acc + (s.matches_played || 0), 0) || 0,
+          totalInjuries: injuriesRes.data?.length || 0
         });
 
         setLiveMatches(fixturesRes.data || []);
         setUpcomingMatches(upcomingRes.data || []);
+        setRecentTransfers(transfersRes.data || []);
         
         // Filter out standings with null teams
         const validStandings = (standingsRes.data || []).filter(standing => 
@@ -217,9 +221,9 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
   };
 
   const getPositionIcon = (position: number) => {
-    if (position <= 3) return <Crown className="w-4 h-4 text-yellow-500" />;
-    if (position <= 6) return <ArrowUp className="w-4 h-4 text-green-500" />;
-    if (position >= standings.length - 2) return <ArrowDown className="w-4 h-4 text-red-500" />;
+    if (position <= 3) return <Trophy className="w-4 h-4 text-yellow-500" />;
+    if (position <= 6) return <Zap className="w-4 h-4 text-green-500" />;
+    if (position >= standings.length - 2) return <Flame className="w-4 h-4 text-red-500" />;
     return <Target className="w-4 h-4 text-gray-400" />;
   };
 
@@ -467,7 +471,6 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                         key={match.id} 
                         className="glass-row p-4 rounded-lg cursor-pointer hover:bg-white/10 transition-all duration-300"
                         onClick={() => {
-                          // Navigate to team details for home team (you can modify this logic)
                           onTeamSelect?.(match.home_team_id);
                         }}
                       >
@@ -482,10 +485,10 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                             >
                               <img 
                                 src={match.home_team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.home_team?.name || 'team'}`}
-                                alt={match.home_team?.name || 'Team'}
-                                className="w-8 h-8 rounded"
+                                alt={match.home_team?.name || 'Home Team'}
+                                className="w-6 h-6 rounded-full"
                               />
-                              <span className="font-medium text-white">{match.home_team?.name || 'Unknown Team'}</span>
+                              <span className="text-white font-medium">{match.home_team?.name || 'Home Team'}</span>
                             </div>
                             <span className="text-slate-400">vs</span>
                             <div 
@@ -497,19 +500,15 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                             >
                               <img 
                                 src={match.away_team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.away_team?.name || 'team'}`}
-                                alt={match.away_team?.name || 'Team'}
-                                className="w-8 h-8 rounded"
+                                alt={match.away_team?.name || 'Away Team'}
+                                className="w-6 h-6 rounded-full"
                               />
-                              <span className="font-medium text-white">{match.away_team?.name || 'Unknown Team'}</span>
+                              <span className="text-white font-medium">{match.away_team?.name || 'Away Team'}</span>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-white">
-                              {match.home_score} - {match.away_score}
-                            </div>
-                            <div className="text-sm text-green-400">
-                              {match.minute}'
-                            </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                            <span className="text-green-400 font-medium">LIVE</span>
                           </div>
                         </div>
                       </div>
@@ -523,99 +522,119 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                 <div className="mb-4">
                   <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-blue-400" />
-                    Upcoming Fixtures
+                    Upcoming Matches
                   </h3>
                 </div>
-                
-                {/* Tier Filter */}
-                <div className="flex gap-2 mb-6">
-                  {[1, 2, 3, 4, 5].map((tier) => (
-                    <button
-                      key={tier}
-                      className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                        selectedTier === tier
-                          ? 'glass-primary text-white'
-                          : 'glass-button text-slate-300 hover:text-white'
-                      }`}
-                      onClick={() => setSelectedTier(tier)}
-                    >
-                      Tier {tier}
-                    </button>
-                  ))}
-                </div>
-
-                {upcomingMatches.filter(match => 
-                  match.home_team?.tier === selectedTier || match.away_team?.tier === selectedTier
-                ).length === 0 ? (
+                {upcomingMatches.length === 0 ? (
                   <div className="text-center py-8">
                     <Calendar className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <p className="text-slate-400">No upcoming fixtures for Tier {selectedTier}</p>
-                    <p className="text-sm text-slate-500 mt-2">Fixtures will be generated automatically</p>
+                    <p className="text-slate-400">No upcoming matches scheduled</p>
+                    <p className="text-sm text-slate-500 mt-2">Fixtures will appear here when scheduled</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {upcomingMatches
-                      .filter(match => 
-                        match.home_team?.tier === selectedTier || match.away_team?.tier === selectedTier
-                      )
-                      .map((match) => (
-                        <div 
-                          key={match.id} 
-                          className="glass-row p-4 rounded-lg cursor-pointer hover:bg-white/10 transition-all duration-300"
-                          onClick={() => {
-                            onTeamSelect?.(match.home_team_id);
-                          }}
-                        >
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-4">
-                              <div 
-                                className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onTeamSelect?.(match.home_team_id);
-                                }}
-                              >
-                                <img 
-                                  src={match.home_team?.tier === 1 ? match.home_team?.logo_url : match.home_team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.home_team?.name || 'team'}`}
-                                  alt={match.home_team?.name || 'Team'}
-                                  className="w-8 h-8 rounded"
-                                />
-                                <span className="font-medium text-white">{match.home_team?.name || 'Unknown Team'}</span>
+                    {upcomingMatches.map((match) => (
+                      <div 
+                        key={match.id} 
+                        className="glass-row p-4 rounded-lg cursor-pointer hover:bg-white/10 transition-all duration-300"
+                        onClick={() => {
+                          onTeamSelect?.(match.home_team_id);
+                        }}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-4">
+                            <div 
+                              className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onTeamSelect?.(match.home_team_id);
+                              }}
+                            >
+                              <img 
+                                src={match.home_team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.home_team?.name || 'team'}`}
+                                alt={match.home_team?.name || 'Home Team'}
+                                className="w-6 h-6 rounded-full"
+                              />
+                              <span className="text-white font-medium">{match.home_team?.name || 'Home Team'}</span>
+                            </div>
+                            <span className="text-slate-400">vs</span>
+                            <div 
+                              className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onTeamSelect?.(match.away_team_id);
+                              }}
+                            >
+                              <img 
+                                src={match.away_team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.away_team?.name || 'team'}`}
+                                alt={match.away_team?.name || 'Away Team'}
+                                className="w-6 h-6 rounded-full"
+                              />
+                              <span className="text-white font-medium">{match.away_team?.name || 'Away Team'}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <div className="text-sm text-slate-400">
+                                {match.home_team?.tier && `Tier ${match.home_team.tier}`}
                               </div>
-                              <span className="text-slate-400">vs</span>
-                              <div 
-                                className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onTeamSelect?.(match.away_team_id);
-                                }}
-                              >
-                                <img 
-                                  src={match.away_team?.tier === 1 ? match.away_team?.logo_url : match.away_team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.away_team?.name || 'team'}`}
-                                  alt={match.away_team?.name || 'Team'}
-                                  className="w-8 h-8 rounded"
-                                />
-                                <span className="font-medium text-white">{match.away_team?.name || 'Unknown Team'}</span>
+                              <div className="text-xs text-slate-500">
+                                Round {match.round}
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="text-sm text-slate-400">
-                                Round {match.round}
+                              <div className="text-sm text-blue-400 font-medium">
+                                {new Date(match.scheduled_at).toLocaleDateString()}
                               </div>
-                              <div className="text-sm text-blue-400">
-                                {new Date(match.scheduled_at).toLocaleDateString('en-GB', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
+                              <div className="text-xs text-slate-400">
+                                {new Date(match.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </div>
                             </div>
                           </div>
                         </div>
-                      ))}
+                      </div>
+                    ))}
                   </div>
                 )}
+              </div>
+
+              {/* Recent Transfers Section */}
+              <div className="glass-card p-6">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <ArrowRightLeft className="h-5 w-5 text-purple-400" />
+                    Recent Transfers
+                  </h3>
+                </div>
+                <div className="space-y-4">
+                  {recentTransfers.length === 0 ? (
+                    <div className="text-center py-8">
+                      <DollarSign className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-400">No recent transfers</p>
+                      <p className="text-sm text-slate-500 mt-2">Transfer activity will appear here</p>
+                    </div>
+                  ) : (
+                    recentTransfers.slice(0, 10).map((transfer) => (
+                      <div key={transfer.id} className="glass-row p-4 rounded-lg">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-4">
+                            <div className="text-white font-medium">{transfer.player?.name}</div>
+                            <ArrowRightLeft className="h-4 w-4 text-purple-400" />
+                            <div className="text-slate-300">{transfer.to_team?.name}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-green-400 font-medium">
+                              £{(transfer.transfer_fee / 1000000).toFixed(1)}M
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              {new Date(transfer.transfer_date).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </TabsContent>
