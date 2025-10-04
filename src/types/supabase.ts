@@ -1652,6 +1652,10 @@ export type Database = {
         Args: { injury_severity?: string; match_id: string; player_id: string }
         Returns: string
       }
+      auto_check_fixtures: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       calculate_market_value: {
         Args: { player_age: number; player_attributes: Json; team_tier: number }
         Returns: number
