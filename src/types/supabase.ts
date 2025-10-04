@@ -1172,6 +1172,23 @@ export type Database = {
         Args: { p_season_id: string }
         Returns: number
       }
+      get_league_standings: {
+        Args: { league_tier?: number }
+        Returns: {
+          draws: number
+          goal_difference: number
+          goals_against: number
+          goals_for: number
+          losses: number
+          matches_played: number
+          points: number
+          team_id: number
+          team_name: string
+          transfer_budget: number
+          wealth_category: string
+          wins: number
+        }[]
+      }
       mark_orchestration_completed: {
         Args: Record<PropertyKey, never>
         Returns: undefined

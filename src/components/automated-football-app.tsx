@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Activity, 
   Users, 
@@ -15,7 +16,11 @@ import {
   DollarSign,
   Play,
   Pause,
-  RotateCcw
+  RotateCcw,
+  Crown,
+  Target,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 
 const supabase = createClient();
@@ -25,7 +30,8 @@ export default function AutomatedFootballApp() {
   const [liveMatches, setLiveMatches] = useState<any[]>([]);
   const [recentTransfers, setRecentTransfers] = useState<any[]>([]);
   const [orchestrationStatus, setOrchestrationStatus] = useState<any>({});
-  const [wealthStats, setWealthStats] = useState<any>({});
+  const [standings, setStandings] = useState<any[]>([]);
+  const [selectedTier, setSelectedTier] = useState(1);
   const [isConnected, setIsConnected] = useState(false);
 
   // Server-side heartbeat to trigger orchestration
@@ -55,8 +61,8 @@ export default function AutomatedFootballApp() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get basic stats
-        const [teamsRes, playersRes, matchesRes, transfersRes, wealthRes, orchestrationRes] = await Promise.all([
+        // Get basic stats and standings
+        const [teamsRes, playersRes, matchesRes, transfersRes, orchestrationRes, standingsRes] = await Promise.all([
           supabase.from('teams').select('id'),
           supabase.from('players').select('id'),
           supabase.from('matches').select('*').eq('status', 'live').limit(10),
@@ -66,8 +72,8 @@ export default function AutomatedFootballApp() {
             from_team:teams!transfers_from_team_id_fkey(name),
             to_team:teams!transfers_to_team_id_fkey(name)
           `).order('created_at', { ascending: false }).limit(10),
-          supabase.from('teams').select('wealth_category, transfer_budget, tier').order('transfer_budget', { ascending: false }),
-          supabase.from('orchestration_status').select('*').eq('id', 1).single()
+          supabase.from('orchestration_status').select('*').eq('id', 1).single(),
+          supabase.rpc('get_league_standings', { league_tier: selectedTier })
         ]);
 
         setStats({
@@ -79,26 +85,9 @@ export default function AutomatedFootballApp() {
         setLiveMatches(matchesRes.data || []);
         setRecentTransfers(transfersRes.data || []);
         setOrchestrationStatus(orchestrationRes.data || {});
+        setStandings(standingsRes.data || []);
         setIsConnected(true);
 
-        // Process wealth statistics
-        if (wealthRes.data) {
-          const wealthBreakdown = wealthRes.data.reduce((acc: any, team: any) => {
-            const category = team.wealth_category || 'unknown';
-            if (!acc[category]) {
-              acc[category] = { count: 0, totalBudget: 0, avgBudget: 0 };
-            }
-            acc[category].count++;
-            acc[category].totalBudget += team.transfer_budget || 0;
-            return acc;
-          }, {});
-
-          Object.keys(wealthBreakdown).forEach(category => {
-            wealthBreakdown[category].avgBudget = Math.floor(wealthBreakdown[category].totalBudget / wealthBreakdown[category].count);
-          });
-
-          setWealthStats(wealthBreakdown);
-        }
       } catch (error) {
         console.error('Error fetching data:', error);
         setIsConnected(false);
@@ -109,7 +98,7 @@ export default function AutomatedFootballApp() {
     const interval = setInterval(fetchData, 5000); // Update every 5 seconds for real-time feel
 
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedTier]);
 
   // Subscribe to real-time updates for immediate changes
   useEffect(() => {
@@ -173,6 +162,25 @@ export default function AutomatedFootballApp() {
     if (diffHours < 24) return `${diffHours}h ago`;
     const diffDays = Math.floor(diffHours / 24);
     return `${diffDays}d ago`;
+  };
+
+  const getPositionIcon = (position: number) => {
+    if (position <= 3) return <Crown className="w-4 h-4 text-yellow-500" />;
+    if (position <= 6) return <ArrowUp className="w-4 h-4 text-green-500" />;
+    if (position >= standings.length - 2) return <ArrowDown className="w-4 h-4 text-red-500" />;
+    return <Target className="w-4 h-4 text-gray-400" />;
+  };
+
+  const getWealthColor = (category: string) => {
+    switch (category) {
+      case 'mega_rich': return 'bg-purple-100 text-purple-800';
+      case 'rich': return 'bg-blue-100 text-blue-800';
+      case 'moderate': return 'bg-green-100 text-green-800';
+      case 'limited': return 'bg-yellow-100 text-yellow-800';
+      case 'poor': return 'bg-orange-100 text-orange-800';
+      case 'very_poor': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
@@ -255,123 +263,165 @@ export default function AutomatedFootballApp() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Live Matches */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="w-5 h-5" />
-                Live Matches
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {liveMatches.length > 0 ? (
-                <div className="space-y-4">
-                  {liveMatches.map((match) => (
-                    <div key={match.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Badge variant="destructive" className="animate-pulse">LIVE</Badge>
-                        <div>
-                          <p className="font-semibold">{match.home_team_name} vs {match.away_team_name}</p>
-                          <p className="text-sm text-gray-600">
-                            {match.home_score} - {match.away_score} • {match.minute}'
-                          </p>
+        <Tabs defaultValue="standings" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="standings">League Standings</TabsTrigger>
+            <TabsTrigger value="matches">Live Matches</TabsTrigger>
+            <TabsTrigger value="transfers">Recent Transfers</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="standings" className="mt-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="w-5 h-5" />
+                    Season Standings
+                  </CardTitle>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((tier) => (
+                      <Button
+                        key={tier}
+                        variant={selectedTier === tier ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedTier(tier)}
+                      >
+                        Tier {tier}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {standings.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 border-b pb-2">
+                      <div className="col-span-1">Pos</div>
+                      <div className="col-span-4">Team</div>
+                      <div className="col-span-1">MP</div>
+                      <div className="col-span-1">W</div>
+                      <div className="col-span-1">D</div>
+                      <div className="col-span-1">L</div>
+                      <div className="col-span-1">GD</div>
+                      <div className="col-span-1">Pts</div>
+                      <div className="col-span-1">Budget</div>
+                    </div>
+                    {standings.map((team, index) => (
+                      <div key={team.team_id} className="grid grid-cols-12 gap-2 items-center py-2 hover:bg-gray-50 rounded">
+                        <div className="col-span-1 flex items-center gap-1">
+                          <span className="font-medium">{index + 1}</span>
+                          {getPositionIcon(index + 1)}
+                        </div>
+                        <div className="col-span-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{team.team_name}</span>
+                            <Badge className={`text-xs ${getWealthColor(team.wealth_category)}`}>
+                              {team.wealth_category?.replace('_', ' ')}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="col-span-1 text-sm">{team.matches_played}</div>
+                        <div className="col-span-1 text-sm text-green-600">{team.wins}</div>
+                        <div className="col-span-1 text-sm text-yellow-600">{team.draws}</div>
+                        <div className="col-span-1 text-sm text-red-600">{team.losses}</div>
+                        <div className="col-span-1 text-sm">
+                          <span className={team.goal_difference >= 0 ? 'text-green-600' : 'text-red-600'}>
+                            {team.goal_difference >= 0 ? '+' : ''}{team.goal_difference}
+                          </span>
+                        </div>
+                        <div className="col-span-1 text-sm font-bold">{team.points}</div>
+                        <div className="col-span-1 text-xs text-gray-600">
+                          {formatCurrency(team.transfer_budget)}
                         </div>
                       </div>
-                      <Clock className="w-4 h-4 text-red-600" />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No live matches at the moment</p>
-                  <p className="text-sm">Server will start matches automatically</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Recent Transfers */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Recent Transfers
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {recentTransfers.length > 0 ? (
-                <div className="space-y-4">
-                  {recentTransfers.slice(0, 5).map((transfer) => (
-                    <div key={transfer.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                      <div>
-                        <p className="font-semibold">{transfer.player?.name}</p>
-                        <p className="text-sm text-gray-600">
-                          {transfer.from_team?.name} → {transfer.to_team?.name}
-                        </p>
-                        <p className="text-xs text-gray-500">{formatTimeAgo(transfer.created_at)}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-green-600">{formatCurrency(transfer.transfer_fee)}</p>
-                        <p className="text-xs text-gray-500">{transfer.player?.position}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <DollarSign className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No recent transfers</p>
-                  <p className="text-sm">Server handles transfers automatically</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Wealth Distribution */}
-        {Object.keys(wealthStats).length > 0 && (
-          <Card className="mt-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5" />
-                Wealth Distribution
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {Object.entries(wealthStats).map(([category, data]: [string, any]) => (
-                  <div key={category} className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-gray-700 capitalize text-sm">
-                        {category.replace('_', ' ')}
-                        <span className="ml-2">
-                          {category === 'mega_rich' ? '🏆' : 
-                           category === 'rich' ? '💎' : 
-                           category === 'moderate' ? '⚽' : 
-                           category === 'limited' ? '📊' : 
-                           category === 'poor' ? '💸' : 
-                           category === 'very_poor' ? '🏚️' : '❓'}
-                        </span>
-                      </h3>
-                      <Badge variant="secondary" className="text-xs">
-                        {data.count}
-                      </Badge>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-gray-600">
-                        Avg: <span className="font-semibold text-green-600">
-                          {formatCurrency(data.avgBudget)}
-                        </span>
-                      </p>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No standings data yet</p>
+                    <p className="text-sm">Matches need to be completed to generate standings</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="matches" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5" />
+                  Live Matches
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {liveMatches.length > 0 ? (
+                  <div className="space-y-4">
+                    {liveMatches.map((match) => (
+                      <div key={match.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Badge variant="destructive" className="animate-pulse">LIVE</Badge>
+                          <div>
+                            <p className="font-semibold">{match.home_team_name} vs {match.away_team_name}</p>
+                            <p className="text-sm text-gray-600">
+                              {match.home_score} - {match.away_score} • {match.minute}'
+                            </p>
+                          </div>
+                        </div>
+                        <Clock className="w-4 h-4 text-red-600" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No live matches at the moment</p>
+                    <p className="text-sm">Server will start matches automatically</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="transfers" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Recent Transfers
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentTransfers.length > 0 ? (
+                  <div className="space-y-4">
+                    {recentTransfers.slice(0, 10).map((transfer) => (
+                      <div key={transfer.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                        <div>
+                          <p className="font-semibold">{transfer.player?.name}</p>
+                          <p className="text-sm text-gray-600">
+                            {transfer.from_team?.name} → {transfer.to_team?.name}
+                          </p>
+                          <p className="text-xs text-gray-500">{formatTimeAgo(transfer.created_at)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-green-600">{formatCurrency(transfer.transfer_fee)}</p>
+                          <p className="text-xs text-gray-500">{transfer.player?.position}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <DollarSign className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No recent transfers</p>
+                    <p className="text-sm">Server handles transfers automatically</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
         {/* System Status */}
         <Card className="mt-8">
