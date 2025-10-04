@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/utils/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,10 +25,8 @@ import {
   Heart
 } from 'lucide-react';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Use the centralized client
+const supabase = createClient();
 
 interface AutomatedFootballAppProps {
   onTeamSelect?: (teamId: string) => void;
@@ -457,11 +455,11 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                             }}
                           >
                             <img 
-                              src={match.home_team.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.home_team.name}`}
-                              alt={match.home_team.name}
+                              src={match.home_team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.home_team?.name || 'team'}`}
+                              alt={match.home_team?.name || 'Team'}
                               className="w-8 h-8 rounded"
                             />
-                            <span className="font-medium text-white">{match.home_team.name}</span>
+                            <span className="font-medium text-white">{match.home_team?.name || 'Unknown Team'}</span>
                           </div>
                           <span className="text-slate-400">vs</span>
                           <div 
@@ -472,11 +470,11 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                             }}
                           >
                             <img 
-                              src={match.away_team.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.away_team.name}`}
-                              alt={match.away_team.name}
+                              src={match.away_team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.away_team?.name || 'team'}`}
+                              alt={match.away_team?.name || 'Team'}
                               className="w-8 h-8 rounded"
                             />
-                            <span className="font-medium text-white">{match.away_team.name}</span>
+                            <span className="font-medium text-white">{match.away_team?.name || 'Unknown Team'}</span>
                           </div>
                         </div>
                         <div className="text-right">
@@ -560,11 +558,11 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                               <td className="p-3">
                                 <div className="flex items-center gap-2">
                                   <img 
-                                    src={team.team?.tier === 1 ? team.team?.logo_url : team.team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${team.team?.name}`}
-                                    alt={team.team?.name}
+                                    src={team.team?.tier === 1 ? team.team?.logo_url : team.team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${team.team?.name || 'team'}`}
+                                    alt={team.team?.name || 'Team'}
                                     className="w-6 h-6 rounded"
                                   />
-                                  <span className="font-medium text-white">{team.team?.name}</span>
+                                  <span className="font-medium text-white">{team.team?.name || 'Unknown Team'}</span>
                                 </div>
                               </td>
                               <td className="text-center p-3 text-slate-300">{team.played}</td>
@@ -607,13 +605,13 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                         <div key={transfer.id} className="glass-row p-4 rounded-lg">
                           <div className="flex justify-between items-center">
                             <div>
-                              <div className="font-medium text-white">{transfer.player_name}</div>
+                              <div className="font-medium text-white">{transfer.player?.name || 'Unknown Player'}</div>
                               <div className="text-sm text-slate-400">
-                                {transfer.from_team} → {transfer.to_team}
+                                {transfer.from_team?.name || 'Unknown Team'} → {transfer.to_team?.name || 'Unknown Team'}
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="font-bold text-green-400">£{transfer.fee?.toLocaleString()}</div>
+                              <div className="font-bold text-green-400">£{transfer.fee?.toLocaleString() || '0'}</div>
                               <div className="text-xs text-slate-500">{transfer.date}</div>
                             </div>
                           </div>
@@ -701,8 +699,8 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                         <div key={injury.id} className="glass-row p-4 rounded-lg">
                           <div className="flex justify-between items-center">
                             <div>
-                              <div className="font-medium text-white">{injury.player?.name}</div>
-                              <div className="text-sm text-slate-400">{injury.player?.team?.name}</div>
+                              <div className="font-medium text-white">{injury.player?.name || 'Unknown Player'}</div>
+                              <div className="text-sm text-slate-400">{injury.player?.team?.name || 'Unknown Team'}</div>
                             </div>
                             <div className="text-right">
                               <div className={`font-medium ${
