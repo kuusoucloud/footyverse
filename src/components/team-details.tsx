@@ -70,8 +70,8 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
           .from('fixtures')
           .select(`
             *,
-            home_team:teams!fixtures_home_team_id_fkey(name, primary_color),
-            away_team:teams!fixtures_away_team_id_fkey(name, primary_color)
+            home_team:teams!fixtures_home_team_id_fkey(name, primary_color, logo_url),
+            away_team:teams!fixtures_away_team_id_fkey(name, primary_color, logo_url)
           `)
           .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
           .eq('status', 'completed')
@@ -83,8 +83,8 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
           .from('fixtures')
           .select(`
             *,
-            home_team:teams!fixtures_home_team_id_fkey(name, primary_color),
-            away_team:teams!fixtures_away_team_id_fkey(name, primary_color)
+            home_team:teams!fixtures_home_team_id_fkey(name, primary_color, logo_url),
+            away_team:teams!fixtures_away_team_id_fkey(name, primary_color, logo_url)
           `)
           .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
           .in('status', ['scheduled', 'live'])
@@ -200,10 +200,18 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
           </Button>
           
           <div className="flex items-center gap-4">
-            <div 
-              className="w-16 h-16 rounded-full border-4 border-white shadow-lg"
-              style={{ backgroundColor: team.primary_color }}
-            />
+            {team.logo_url ? (
+              <img 
+                src={team.logo_url} 
+                alt={`${team.name} logo`}
+                className="w-16 h-16 rounded-full border-4 border-white shadow-lg bg-white p-1"
+              />
+            ) : (
+              <div 
+                className="w-16 h-16 rounded-full border-4 border-white shadow-lg"
+                style={{ backgroundColor: team.primary_color }}
+              />
+            )}
             <div>
               <h1 className="text-4xl font-bold text-gray-800">{team.name}</h1>
               <div className="flex items-center gap-2 mt-2">
@@ -395,14 +403,30 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                       {recentMatches.map((match) => (
                         <div key={match.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div className="flex items-center gap-3">
-                            <div className="text-center">
-                              <div className="text-sm font-medium">
-                                {match.home_team.name}
+                            <div className="flex items-center gap-2">
+                              {match.home_team.logo_url && (
+                                <img 
+                                  src={match.home_team.logo_url} 
+                                  alt={`${match.home_team.name} logo`}
+                                  className="w-6 h-6 rounded-full bg-white p-0.5"
+                                />
+                              )}
+                              <div className="text-center">
+                                <div className="text-sm font-medium">
+                                  {match.home_team.name}
+                                </div>
+                                <div className="text-xs text-gray-500">vs</div>
+                                <div className="text-sm font-medium">
+                                  {match.away_team.name}
+                                </div>
                               </div>
-                              <div className="text-xs text-gray-500">vs</div>
-                              <div className="text-sm font-medium">
-                                {match.away_team.name}
-                              </div>
+                              {match.away_team.logo_url && (
+                                <img 
+                                  src={match.away_team.logo_url} 
+                                  alt={`${match.away_team.name} logo`}
+                                  className="w-6 h-6 rounded-full bg-white p-0.5"
+                                />
+                              )}
                             </div>
                           </div>
                           <div className="text-center">
@@ -435,14 +459,30 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                       {upcomingMatches.map((match) => (
                         <div key={match.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                           <div className="flex items-center gap-3">
-                            <div className="text-center">
-                              <div className="text-sm font-medium">
-                                {match.home_team.name}
+                            <div className="flex items-center gap-2">
+                              {match.home_team.logo_url && (
+                                <img 
+                                  src={match.home_team.logo_url} 
+                                  alt={`${match.home_team.name} logo`}
+                                  className="w-6 h-6 rounded-full bg-white p-0.5"
+                                />
+                              )}
+                              <div className="text-center">
+                                <div className="text-sm font-medium">
+                                  {match.home_team.name}
+                                </div>
+                                <div className="text-xs text-gray-500">vs</div>
+                                <div className="text-sm font-medium">
+                                  {match.away_team.name}
+                                </div>
                               </div>
-                              <div className="text-xs text-gray-500">vs</div>
-                              <div className="text-sm font-medium">
-                                {match.away_team.name}
-                              </div>
+                              {match.away_team.logo_url && (
+                                <img 
+                                  src={match.away_team.logo_url} 
+                                  alt={`${match.away_team.name} logo`}
+                                  className="w-6 h-6 rounded-full bg-white p-0.5"
+                                />
+                              )}
                             </div>
                           </div>
                           <div className="text-center">

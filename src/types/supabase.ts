@@ -850,6 +850,7 @@ export type Database = {
           current_wages: number | null
           elo: number
           id: string
+          logo_url: string | null
           name: string
           primary_color: string
           secondary_color: string
@@ -865,6 +866,7 @@ export type Database = {
           current_wages?: number | null
           elo?: number
           id?: string
+          logo_url?: string | null
           name: string
           primary_color?: string
           secondary_color?: string
@@ -880,6 +882,7 @@ export type Database = {
           current_wages?: number | null
           elo?: number
           id?: string
+          logo_url?: string | null
           name?: string
           primary_color?: string
           secondary_color?: string
