@@ -25,7 +25,11 @@ import {
 
 const supabase = createClient();
 
-export default function AutomatedFootballApp() {
+interface AutomatedFootballAppProps {
+  onTeamSelect?: (teamId: string) => void;
+}
+
+export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootballAppProps = {}) {
   const [stats, setStats] = useState<any>({});
   const [liveMatches, setLiveMatches] = useState<any[]>([]);
   const [recentTransfers, setRecentTransfers] = useState<any[]>([]);
@@ -290,7 +294,13 @@ export default function AutomatedFootballApp() {
                       <div className="col-span-1">ELO</div>
                     </div>
                     {standings.filter(s => s.team?.tier === selectedTier).map((standing, index) => (
-                      <div key={standing.id} className="grid grid-cols-12 gap-2 items-center py-2 hover:bg-gray-50 rounded">
+                      <div 
+                        key={standing.id} 
+                        className={`grid grid-cols-12 gap-2 items-center py-2 rounded transition-colors ${
+                          onTeamSelect ? 'hover:bg-blue-50 cursor-pointer' : 'hover:bg-gray-50'
+                        }`}
+                        onClick={() => onTeamSelect && onTeamSelect(standing.team_id)}
+                      >
                         <div className="col-span-1 flex items-center gap-1">
                           <span className="font-medium">{index + 1}</span>
                           {getPositionIcon(index + 1)}
@@ -301,7 +311,14 @@ export default function AutomatedFootballApp() {
                               className="w-4 h-4 rounded-full border"
                               style={{ backgroundColor: standing.team?.primary_color }}
                             />
-                            <span className="font-medium">{standing.team?.name}</span>
+                            <span className={`font-medium ${onTeamSelect ? 'text-blue-600 hover:text-blue-800' : ''}`}>
+                              {standing.team?.name}
+                            </span>
+                            {onTeamSelect && (
+                              <span className="text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                Click to view →
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="col-span-1 text-sm">{standing.played}</div>

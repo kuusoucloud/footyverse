@@ -4,17 +4,24 @@ import { useState } from 'react';
 import MatchSelection from './match-selection';
 import MatchViewer3D from './match-viewer-3d';
 import AutomatedFootballApp from './automated-football-app';
+import TeamDetails from './team-details';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
 export default function FootballApp() {
-  const [currentView, setCurrentView] = useState<'overview' | 'matches' | 'viewer'>('overview');
+  const [currentView, setCurrentView] = useState<'overview' | 'matches' | 'viewer' | 'team'>('overview');
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
   const handleMatchSelect = (match: any) => {
     setSelectedMatch(match);
     setCurrentView('viewer');
+  };
+
+  const handleTeamSelect = (teamId: string) => {
+    setSelectedTeamId(teamId);
+    setCurrentView('team');
   };
 
   const handleBackToMatches = () => {
@@ -25,6 +32,7 @@ export default function FootballApp() {
   const handleBackToOverview = () => {
     setCurrentView('overview');
     setSelectedMatch(null);
+    setSelectedTeamId(null);
   };
 
   if (currentView === 'viewer' && selectedMatch) {
@@ -41,6 +49,15 @@ export default function FootballApp() {
         </div>
         <MatchViewer3D fixtureId={selectedMatch.id} />
       </div>
+    );
+  }
+
+  if (currentView === 'team' && selectedTeamId) {
+    return (
+      <TeamDetails 
+        teamId={selectedTeamId} 
+        onBack={handleBackToOverview}
+      />
     );
   }
 
@@ -75,34 +92,17 @@ export default function FootballApp() {
             </p>
           </div>
 
-          {/* Navigation Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCurrentView('overview')}>
+          {/* Navigation Card - Only 3D Match Viewer */}
+          <div className="flex justify-center mb-12">
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow max-w-md" onClick={() => setCurrentView('matches')}>
               <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  <span className="text-2xl">🤖</span>
-                  Ecosystem Overview
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4">
-                  Watch the complete autonomous football universe unfold with live stats, transfers, and match progression.
-                </p>
-                <Button className="w-full">
-                  View Ecosystem
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCurrentView('matches')}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3">
+                <CardTitle className="flex items-center gap-3 justify-center">
                   <span className="text-2xl">🎮</span>
                   3D Match Viewer
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600 mb-4">
+                <p className="text-gray-600 mb-4 text-center">
                   Experience live football matches in stunning 3D with broadcast-style camera views and real-time action.
                 </p>
                 <Button className="w-full">
@@ -112,7 +112,7 @@ export default function FootballApp() {
             </Card>
           </div>
 
-          {/* Embedded Overview */}
+          {/* Embedded Overview with clickable teams */}
           <Tabs defaultValue="ecosystem" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="ecosystem">Live Ecosystem</TabsTrigger>
@@ -120,7 +120,7 @@ export default function FootballApp() {
             </TabsList>
             
             <TabsContent value="ecosystem" className="mt-6">
-              <AutomatedFootballApp />
+              <AutomatedFootballApp onTeamSelect={handleTeamSelect} />
             </TabsContent>
             
             <TabsContent value="features" className="mt-6">
