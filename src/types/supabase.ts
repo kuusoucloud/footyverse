@@ -808,6 +808,7 @@ export type Database = {
           tier: number
           transfer_budget: number | null
           wage_budget: number | null
+          wealth_category: string | null
         }
         Insert: {
           created_at?: string | null
@@ -821,6 +822,7 @@ export type Database = {
           tier: number
           transfer_budget?: number | null
           wage_budget?: number | null
+          wealth_category?: string | null
         }
         Update: {
           created_at?: string | null
@@ -834,6 +836,7 @@ export type Database = {
           tier?: number
           transfer_budget?: number | null
           wage_budget?: number | null
+          wealth_category?: string | null
         }
         Relationships: []
       }

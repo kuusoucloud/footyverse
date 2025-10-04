@@ -29,6 +29,7 @@ export default function AdminPanel() {
   });
   const [message, setMessage] = useState("");
   const [transferActivity, setTransferActivity] = useState<any[]>([]);
+  const [wealthStats, setWealthStats] = useState<any>({});
   const supabase = createClient();
 
   useEffect(() => {
@@ -44,24 +45,42 @@ export default function AdminPanel() {
 
   const checkSystemStatus = async () => {
     try {
-      const [teamsRes, playersRes, fixturesRes, liveRes] = await Promise.all([
-        supabase.from("teams").select("id", { count: "exact" }),
-        supabase.from("players").select("id", { count: "exact" }),
-        supabase.from("fixtures").select("id", { count: "exact" }),
-        supabase
-          .from("fixtures")
-          .select("id", { count: "exact" })
-          .eq("status", "live"),
+      const [teamsRes, playersRes, fixturesRes, matchesRes, wealthRes] = await Promise.all([
+        supabase.from('teams').select('id'),
+        supabase.from('players').select('id'),
+        supabase.from('fixtures').select('id'),
+        supabase.from('matches').select('id').eq('status', 'live'),
+        supabase.from('teams').select('wealth_category, transfer_budget, tier').order('transfer_budget', { ascending: false })
       ]);
 
-      setSystemStatus({
-        teams: teamsRes.count || 0,
-        players: playersRes.count || 0,
-        fixtures: fixturesRes.count || 0,
-        liveMatches: liveRes.count || 0,
+      setStats({
+        teams: teamsRes.data?.length || 0,
+        players: playersRes.data?.length || 0,
+        fixtures: fixturesRes.data?.length || 0,
+        liveMatches: matchesRes.data?.length || 0
       });
+
+      // Process wealth statistics
+      if (wealthRes.data) {
+        const wealthBreakdown = wealthRes.data.reduce((acc: any, team: any) => {
+          const category = team.wealth_category || 'unknown';
+          if (!acc[category]) {
+            acc[category] = { count: 0, totalBudget: 0, avgBudget: 0 };
+          }
+          acc[category].count++;
+          acc[category].totalBudget += team.transfer_budget || 0;
+          return acc;
+        }, {});
+
+        // Calculate averages
+        Object.keys(wealthBreakdown).forEach(category => {
+          wealthBreakdown[category].avgBudget = Math.floor(wealthBreakdown[category].totalBudget / wealthBreakdown[category].count);
+        });
+
+        setWealthStats(wealthBreakdown);
+      }
     } catch (error) {
-      console.error("Failed to check system status:", error);
+      console.error('Error fetching stats:', error);
     }
   };
 
@@ -294,23 +313,6 @@ export default function AdminPanel() {
     }
   };
 
-  const fetchStats = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke(
-        "supabase-functions-football-ecosystem",
-        {
-          body: { action: "get_stats" },
-        },
-      );
-
-      if (error) throw error;
-      
-      setStats(data);
-    } catch (error) {
-      console.error("Failed to fetch stats:", error);
-    }
-  };
-
   const setupCompleteEcosystem = async () => {
     setLoading(true);
     setMessage('');
@@ -477,6 +479,62 @@ export default function AdminPanel() {
             <p className="text-sm text-gray-500">Currently playing</p>
           </div>
         </div>
+
+        {/* Wealth Distribution Panel */}
+        {Object.keys(wealthStats).length > 0 && (
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">💰 Wealth Distribution</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(wealthStats).map(([category, data]: [string, any]) => (
+                <div key={category} className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-gray-700 capitalize">
+                      {category.replace('_', ' ')}
+                      <span className="ml-2">
+                        {category === 'mega_rich' ? '🏆' : 
+                         category === 'rich' ? '💎' : 
+                         category === 'moderate' ? '⚽' : 
+                         category === 'limited' ? '📊' : 
+                         category === 'poor' ? '💸' : 
+                         category === 'very_poor' ? '🏚️' : '❓'}
+                      </span>
+                    </h3>
+                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                      {data.count} teams
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-600">
+                      Avg Budget: <span className="font-semibold text-green-600">
+                        £{(data.avgBudget / 1000000).toFixed(1)}M
+                      </span>
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Total: £{(data.totalBudget / 1000000).toFixed(0)}M
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+              <h4 className="font-semibold text-blue-800 mb-2">💡 Wealth Impact on Transfers</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-700">
+                <div>
+                  <p><strong>Mega Rich Teams:</strong> Can spend 40% of budget on one player, attract top talent</p>
+                  <p><strong>Rich Teams:</strong> Spend up to 30% per player, good youth academies</p>
+                  <p><strong>Moderate Teams:</strong> 25% spending limit, balanced approach</p>
+                </div>
+                <div>
+                  <p><strong>Limited Budget:</strong> 20% per player, focus on value</p>
+                  <p><strong>Poor Teams:</strong> 15% limit, sell to survive, fewer youth graduates</p>
+                  <p><strong>Very Poor:</strong> Forced sales, minimal transfer activity</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Actions */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
@@ -841,12 +899,12 @@ export default function AdminPanel() {
             </div>
             
             <div>
-              <h3 className="font-semibold text-gray-700 mb-2">📊 Advanced Features</h3>
+              <h3 className="font-semibold text-gray-700 mb-2">💰 Wealth System</h3>
               <ul className="text-sm text-gray-600 space-y-1">
-                <li>• Market values and contracts</li>
-                <li>• Transfer system</li>
-                <li>• Injury tracking</li>
-                <li>• Season progression automation</li>
+                <li>• Tier-based wealth distribution</li>
+                <li>• Mega rich to very poor teams</li>
+                <li>• Realistic wage structures</li>
+                <li>• Financial constraints on transfers</li>
               </ul>
             </div>
             
@@ -854,11 +912,21 @@ export default function AdminPanel() {
               <h3 className="font-semibold text-gray-700 mb-2">🔄 Transfer System</h3>
               <ul className="text-sm text-gray-600 space-y-1">
                 <li>• Summer & winter transfer windows</li>
-                <li>• Realistic bid/acceptance mechanics</li>
-                <li>• Market values based on ability & age</li>
-                <li>• Youth academy promotions</li>
+                <li>• Wealth-based bid mechanics</li>
+                <li>• Market values by tier & ability</li>
+                <li>• Youth academy quality by wealth</li>
+                <li>• Financial pressure sales</li>
+                <li>• Prestige-based player movement</li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-2">📊 Advanced Features</h3>
+              <ul className="text-sm text-gray-600 space-y-1">
                 <li>• Contract negotiations & wages</li>
-                <li>• Transfer budgets & financial limits</li>
+                <li>• Transfer budgets & limits</li>
+                <li>• Injury tracking & recovery</li>
+                <li>• Season progression automation</li>
               </ul>
             </div>
           </div>
