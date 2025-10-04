@@ -129,9 +129,9 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
   };
 
   const getFormRating = (rating: number) => {
-    if (rating >= 8) return { color: 'text-green-600', icon: <Star className="w-4 h-4" /> };
-    if (rating >= 6) return { color: 'text-yellow-600', icon: <Zap className="w-4 h-4" /> };
-    return { color: 'text-red-600', icon: <Activity className="w-4 h-4" /> };
+    if (rating >= 8) return { color: 'text-green-600', icon: <TrendingUp className="w-4 h-4" /> };
+    if (rating >= 6) return { color: 'text-yellow-600', icon: <Activity className="w-4 h-4" /> };
+    return { color: 'text-red-600', icon: <TrendingUp className="w-4 h-4 rotate-180" /> };
   };
 
   const getSkillRating = (skill: number) => {

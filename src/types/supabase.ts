@@ -630,6 +630,7 @@ export type Database = {
           skill_rating: number | null
           team_id: string | null
           transfer_listed: boolean | null
+          wage: number | null
           weekly_wage: number | null
           weight_kg: number
         }
@@ -656,6 +657,7 @@ export type Database = {
           skill_rating?: number | null
           team_id?: string | null
           transfer_listed?: boolean | null
+          wage?: number | null
           weekly_wage?: number | null
           weight_kg: number
         }
@@ -682,6 +684,7 @@ export type Database = {
           skill_rating?: number | null
           team_id?: string | null
           transfer_listed?: boolean | null
+          wage?: number | null
           weekly_wage?: number | null
           weight_kg?: number
         }
@@ -854,6 +857,7 @@ export type Database = {
           transfer_budget: number | null
           wage_budget: number | null
           wealth_category: string | null
+          weekly_wage_budget: number | null
         }
         Insert: {
           created_at?: string | null
@@ -868,6 +872,7 @@ export type Database = {
           transfer_budget?: number | null
           wage_budget?: number | null
           wealth_category?: string | null
+          weekly_wage_budget?: number | null
         }
         Update: {
           created_at?: string | null
@@ -882,6 +887,7 @@ export type Database = {
           transfer_budget?: number | null
           wage_budget?: number | null
           wealth_category?: string | null
+          weekly_wage_budget?: number | null
         }
         Relationships: []
       }
