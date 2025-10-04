@@ -1660,7 +1660,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      fix_consecutive_team_matches: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       force_orchestration_run: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      generate_balanced_fixtures: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
@@ -1766,6 +1774,10 @@ export type Database = {
         Returns: undefined
       }
       run_orchestrator_http: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      sequence_cross_tier_rotation: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
