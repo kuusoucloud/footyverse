@@ -28,6 +28,7 @@ export default function AdminPanel() {
     liveMatches: 0,
   });
   const [message, setMessage] = useState("");
+  const [transferActivity, setTransferActivity] = useState<any[]>([]);
   const supabase = createClient();
 
   useEffect(() => {
@@ -373,6 +374,78 @@ export default function AdminPanel() {
     }
   };
 
+  const simulateTransfers = async (windowType: 'summer' | 'winter') => {
+    setLoading(true);
+    setMessage('');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('supabase-functions-transfer-system', {
+        body: { action: 'simulate_transfers', window_type: windowType }
+      });
+
+      if (error) throw error;
+      
+      setMessage(`✅ ${data.message} - ${data.totalTransfers} transfers completed`);
+      setTransferActivity(data.transferActivity || []);
+      await fetchStats();
+    } catch (error) {
+      console.error('Transfer simulation error:', error);
+      setMessage(`❌ Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openTransferWindow = async (windowType: 'summer' | 'winter') => {
+    setLoading(true);
+    setMessage('');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('supabase-functions-transfer-system', {
+        body: { action: 'open_transfer_window', window_type: windowType }
+      });
+
+      if (error) throw error;
+      
+      setMessage(`✅ ${data.message}`);
+    } catch (error) {
+      console.error('Transfer window error:', error);
+      setMessage(`❌ Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTransferActivity = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('supabase-functions-transfer-system', {
+        body: { action: 'get_transfer_activity' }
+      });
+
+      if (error) throw error;
+      
+      setTransferActivity([
+        ...(data.recent_transfers || []).map((t: any) => ({
+          type: 'completed',
+          player: t.player.name,
+          from: t.from_team.name,
+          to: t.to_team.name,
+          fee: t.transfer_fee,
+          date: t.transfer_date
+        })),
+        ...(data.pending_bids || []).map((b: any) => ({
+          type: 'pending_bid',
+          player: b.player.name,
+          from: b.selling_team.name,
+          to: b.bidding_team.name,
+          amount: b.bid_amount
+        }))
+      ]);
+    } catch (error) {
+      console.error('Transfer activity error:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
       <div className="max-w-6xl mx-auto">
@@ -445,6 +518,61 @@ export default function AdminPanel() {
                 Age players, injuries, retirements
               </div>
             </Button>
+          </div>
+
+          {/* Transfer System Controls */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold text-gray-700 mb-4">🔄 Transfer System</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <Button 
+                onClick={() => simulateTransfers('summer')}
+                disabled={loading}
+                className="h-16"
+                variant="default"
+              >
+                🌞 Summer Transfers
+                <div className="text-xs font-normal mt-1">
+                  Major transfer activity
+                </div>
+              </Button>
+              
+              <Button 
+                onClick={() => simulateTransfers('winter')}
+                disabled={loading}
+                className="h-16"
+                variant="secondary"
+              >
+                ❄️ Winter Transfers
+                <div className="text-xs font-normal mt-1">
+                  Mid-season moves
+                </div>
+              </Button>
+              
+              <Button 
+                onClick={() => openTransferWindow('summer')}
+                disabled={loading}
+                className="h-16"
+                variant="outline"
+              >
+                📅 Open Summer Window
+                <div className="text-xs font-normal mt-1">
+                  Activate summer market
+                </div>
+              </Button>
+              
+              <Button 
+                onClick={getTransferActivity}
+                disabled={loading}
+                className="h-16"
+                variant="ghost"
+              >
+                📊 View Activity
+                <div className="text-xs font-normal mt-1">
+                  Recent transfers
+                </div>
+              </Button>
+            </div>
           </div>
 
           {/* 24/7 Match Orchestrator Status */}
@@ -628,11 +756,60 @@ export default function AdminPanel() {
           </div>
         </div>
 
-        {/* System Features */}
+        {/* Transfer Activity Panel */}
+        {transferActivity.length > 0 && (
+          <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">📈 Recent Transfer Activity</h2>
+            
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {transferActivity.map((activity, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">
+                      {activity.type === 'completed' ? '✅' : 
+                       activity.type === 'pending_bid' ? '⏳' : 
+                       activity.type === 'youth_promotion' ? '🌟' : '⚽'}
+                    </span>
+                    <div>
+                      <p className="font-semibold text-gray-800">
+                        {activity.player}
+                        {activity.position && (
+                          <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            {activity.position}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {activity.type === 'completed' && `${activity.from} → ${activity.to}`}
+                        {activity.type === 'pending_bid' && `${activity.to} bidding for ${activity.from} player`}
+                        {activity.type === 'youth_promotion' && `${activity.team} promoted from academy`}
+                        {activity.type === 'bid' && `${activity.bidding_team} bid for ${activity.selling_team} player`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    {(activity.fee || activity.amount) && (
+                      <p className="font-bold text-green-600">
+                        £{((activity.fee || activity.amount) / 1000000).toFixed(1)}M
+                      </p>
+                    )}
+                    {activity.wage && (
+                      <p className="text-xs text-gray-500">
+                        £{(activity.wage / 1000).toFixed(0)}k/week
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Enhanced System Features */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Ecosystem Features</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <h3 className="font-semibold text-gray-700 mb-2">🏆 League System</h3>
               <ul className="text-sm text-gray-600 space-y-1">
@@ -670,6 +847,18 @@ export default function AdminPanel() {
                 <li>• Transfer system</li>
                 <li>• Injury tracking</li>
                 <li>• Season progression automation</li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-2">🔄 Transfer System</h3>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>• Summer & winter transfer windows</li>
+                <li>• Realistic bid/acceptance mechanics</li>
+                <li>• Market values based on ability & age</li>
+                <li>• Youth academy promotions</li>
+                <li>• Contract negotiations & wages</li>
+                <li>• Transfer budgets & financial limits</li>
               </ul>
             </div>
           </div>

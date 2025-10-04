@@ -411,6 +411,51 @@ export type Database = {
           },
         ]
       }
+      player_interests: {
+        Row: {
+          created_at: string | null
+          id: string
+          interest_level: number | null
+          max_bid_amount: number | null
+          player_id: string | null
+          position_need: string | null
+          team_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          interest_level?: number | null
+          max_bid_amount?: number | null
+          player_id?: string | null
+          position_need?: string | null
+          team_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          interest_level?: number | null
+          max_bid_amount?: number | null
+          player_id?: string | null
+          position_need?: string | null
+          team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_interests_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_interests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_match_stats: {
         Row: {
           assists: number
@@ -528,17 +573,23 @@ export type Database = {
           attributes: Json
           base_elo: number
           contract_expires: string | null
+          contract_length: number | null
           created_at: string | null
           current_elo: number
           foot: string
+          form_rating: number | null
           height_cm: number
           id: string
           injury_status: string | null
           injury_until: string | null
+          international_caps: number | null
+          loyalty: number | null
           market_value: number | null
           name: string
           position: string
           team_id: string | null
+          transfer_listed: boolean | null
+          weekly_wage: number | null
           weight_kg: number
         }
         Insert: {
@@ -546,17 +597,23 @@ export type Database = {
           attributes?: Json
           base_elo?: number
           contract_expires?: string | null
+          contract_length?: number | null
           created_at?: string | null
           current_elo?: number
           foot?: string
+          form_rating?: number | null
           height_cm: number
           id?: string
           injury_status?: string | null
           injury_until?: string | null
+          international_caps?: number | null
+          loyalty?: number | null
           market_value?: number | null
           name: string
           position: string
           team_id?: string | null
+          transfer_listed?: boolean | null
+          weekly_wage?: number | null
           weight_kg: number
         }
         Update: {
@@ -564,17 +621,23 @@ export type Database = {
           attributes?: Json
           base_elo?: number
           contract_expires?: string | null
+          contract_length?: number | null
           created_at?: string | null
           current_elo?: number
           foot?: string
+          form_rating?: number | null
           height_cm?: number
           id?: string
           injury_status?: string | null
           injury_until?: string | null
+          international_caps?: number | null
+          loyalty?: number | null
           market_value?: number | null
           name?: string
           position?: string
           team_id?: string | null
+          transfer_listed?: boolean | null
+          weekly_wage?: number | null
           weight_kg?: number
         }
         Relationships: [
@@ -736,37 +799,150 @@ export type Database = {
         Row: {
           created_at: string | null
           crest_url: string | null
+          current_wages: number | null
           elo: number
           id: string
           name: string
           primary_color: string
           secondary_color: string
           tier: number
+          transfer_budget: number | null
+          wage_budget: number | null
         }
         Insert: {
           created_at?: string | null
           crest_url?: string | null
+          current_wages?: number | null
           elo?: number
           id?: string
           name: string
           primary_color?: string
           secondary_color?: string
           tier: number
+          transfer_budget?: number | null
+          wage_budget?: number | null
         }
         Update: {
           created_at?: string | null
           crest_url?: string | null
+          current_wages?: number | null
           elo?: number
           id?: string
           name?: string
           primary_color?: string
           secondary_color?: string
           tier?: number
+          transfer_budget?: number | null
+          wage_budget?: number | null
         }
         Relationships: []
       }
+      transfer_bids: {
+        Row: {
+          bid_amount: number
+          bid_date: string | null
+          bidding_team_id: string | null
+          contract_length: number | null
+          created_at: string | null
+          id: string
+          player_id: string | null
+          response_date: string | null
+          selling_team_id: string | null
+          status: string | null
+          weekly_wage_offer: number
+        }
+        Insert: {
+          bid_amount: number
+          bid_date?: string | null
+          bidding_team_id?: string | null
+          contract_length?: number | null
+          created_at?: string | null
+          id?: string
+          player_id?: string | null
+          response_date?: string | null
+          selling_team_id?: string | null
+          status?: string | null
+          weekly_wage_offer: number
+        }
+        Update: {
+          bid_amount?: number
+          bid_date?: string | null
+          bidding_team_id?: string | null
+          contract_length?: number | null
+          created_at?: string | null
+          id?: string
+          player_id?: string | null
+          response_date?: string | null
+          selling_team_id?: string | null
+          status?: string | null
+          weekly_wage_offer?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transfer_bids_bidding_team_id_fkey"
+            columns: ["bidding_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_bids_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_bids_selling_team_id_fkey"
+            columns: ["selling_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transfer_windows: {
+        Row: {
+          created_at: string | null
+          end_date: string
+          id: string
+          is_active: boolean | null
+          season_id: string | null
+          start_date: string
+          window_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          season_id?: string | null
+          start_date: string
+          window_type: string
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          season_id?: string | null
+          start_date?: string
+          window_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transfer_windows_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transfers: {
         Row: {
+          agent_fee: number | null
+          contract_length: number | null
           created_at: string | null
           from_team_id: string | null
           id: string
@@ -775,8 +951,13 @@ export type Database = {
           to_team_id: string | null
           transfer_date: string | null
           transfer_fee: number | null
+          transfer_type: string | null
+          transfer_window_id: string | null
+          weekly_wage: number | null
         }
         Insert: {
+          agent_fee?: number | null
+          contract_length?: number | null
           created_at?: string | null
           from_team_id?: string | null
           id?: string
@@ -785,8 +966,13 @@ export type Database = {
           to_team_id?: string | null
           transfer_date?: string | null
           transfer_fee?: number | null
+          transfer_type?: string | null
+          transfer_window_id?: string | null
+          weekly_wage?: number | null
         }
         Update: {
+          agent_fee?: number | null
+          contract_length?: number | null
           created_at?: string | null
           from_team_id?: string | null
           id?: string
@@ -795,6 +981,9 @@ export type Database = {
           to_team_id?: string | null
           transfer_date?: string | null
           transfer_fee?: number | null
+          transfer_type?: string | null
+          transfer_window_id?: string | null
+          weekly_wage?: number | null
         }
         Relationships: [
           {
@@ -823,6 +1012,13 @@ export type Database = {
             columns: ["to_team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfers_transfer_window_id_fkey"
+            columns: ["transfer_window_id"]
+            isOneToOne: false
+            referencedRelation: "transfer_windows"
             referencedColumns: ["id"]
           },
         ]
@@ -866,11 +1062,62 @@ export type Database = {
         }
         Relationships: []
       }
+      youth_academy: {
+        Row: {
+          age: number | null
+          created_at: string | null
+          current_rating: number | null
+          graduation_date: string | null
+          id: string
+          player_name: string
+          position: string
+          potential_rating: number | null
+          ready_for_first_team: boolean | null
+          team_id: string | null
+        }
+        Insert: {
+          age?: number | null
+          created_at?: string | null
+          current_rating?: number | null
+          graduation_date?: string | null
+          id?: string
+          player_name: string
+          position: string
+          potential_rating?: number | null
+          ready_for_first_team?: boolean | null
+          team_id?: string | null
+        }
+        Update: {
+          age?: number | null
+          created_at?: string | null
+          current_rating?: number | null
+          graduation_date?: string | null
+          id?: string
+          player_name?: string
+          position?: string
+          potential_rating?: number | null
+          ready_for_first_team?: boolean | null
+          team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youth_academy_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      calculate_market_value: {
+        Args: { player_age: number; player_attributes: Json; team_tier: number }
+        Returns: number
+      }
       generate_season_fixtures: {
         Args: { p_season_id: string }
         Returns: number
