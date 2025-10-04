@@ -277,6 +277,7 @@ export type Database = {
           round: number
           scheduled_at: string
           season_id: string | null
+          sequence_order: number | null
           status: string
         }
         Insert: {
@@ -290,6 +291,7 @@ export type Database = {
           round: number
           scheduled_at: string
           season_id?: string | null
+          sequence_order?: number | null
           status?: string
         }
         Update: {
@@ -303,6 +305,7 @@ export type Database = {
           round?: number
           scheduled_at?: string
           season_id?: string | null
+          sequence_order?: number | null
           status?: string
         }
         Relationships: [
