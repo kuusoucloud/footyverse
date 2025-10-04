@@ -372,7 +372,7 @@ export default function PlayerDetails({ playerId, onBack }: PlayerDetailsProps) 
             </div>
 
             {/* Team Information */}
-            {team && (
+            {currentTeam && (
               <div className="glass-card p-6">
                 <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
                   <Shield className="h-5 w-5 text-green-400" />
@@ -380,13 +380,13 @@ export default function PlayerDetails({ playerId, onBack }: PlayerDetailsProps) 
                 </h3>
                 <div className="flex items-center gap-4">
                   <img 
-                    src={team.logo_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${team.name}`}
-                    alt={team.name}
+                    src={currentTeam.logo_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${currentTeam.name}`}
+                    alt={currentTeam.name}
                     className="w-16 h-16 rounded-lg"
                   />
                   <div>
-                    <div className="text-xl font-bold text-white">{team.name}</div>
-                    <div className="text-slate-400">Tier {team.tier} • ELO: {team.elo_rating}</div>
+                    <div className="text-xl font-bold text-white">{currentTeam.name}</div>
+                    <div className="text-slate-400">Tier {currentTeam.tier} • ELO: {currentTeam.elo_rating}</div>
                   </div>
                 </div>
               </div>
