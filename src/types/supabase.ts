@@ -370,6 +370,21 @@ export type Database = {
           },
         ]
       }
+      orchestration_heartbeat: {
+        Row: {
+          id: number
+          last_beat: string | null
+        }
+        Insert: {
+          id?: number
+          last_beat?: string | null
+        }
+        Update: {
+          id?: number
+          last_beat?: string | null
+        }
+        Relationships: []
+      }
       orchestration_status: {
         Row: {
           created_at: string | null
@@ -1145,6 +1160,10 @@ export type Database = {
         Args: { player_age: number; player_attributes: Json; team_tier: number }
         Returns: number
       }
+      continuous_orchestration: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       force_orchestration_run: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1158,6 +1177,10 @@ export type Database = {
         Returns: undefined
       }
       mark_orchestration_started: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      run_orchestrator_http: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }

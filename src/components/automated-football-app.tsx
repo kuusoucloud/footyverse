@@ -26,70 +26,32 @@ export default function AutomatedFootballApp() {
   const [recentTransfers, setRecentTransfers] = useState<any[]>([]);
   const [orchestrationStatus, setOrchestrationStatus] = useState<any>({});
   const [wealthStats, setWealthStats] = useState<any>({});
-  const [isAutoRunning, setIsAutoRunning] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
 
-  // Initialize ecosystem immediately on component mount
+  // Server-side heartbeat to trigger orchestration
   useEffect(() => {
-    const initializeEcosystem = async () => {
+    const triggerServerOrchestration = async () => {
       try {
-        console.log('🏗️ Initializing football ecosystem...');
-        
-        // Check if we have teams, if not create the ecosystem
-        const { data: teams } = await supabase.from('teams').select('id').limit(1);
-        
-        if (!teams || teams.length === 0) {
-          console.log('🚀 Creating complete football ecosystem...');
-          await supabase.functions.invoke('supabase-functions-football-ecosystem', {
-            body: { action: 'full_setup' }
-          });
-        }
-        
-        // Force orchestration to run immediately
-        console.log('🎮 Starting orchestration...');
-        await supabase.functions.invoke('supabase-functions-match-orchestrator');
-        
+        // Update heartbeat to trigger server-side orchestration
+        await supabase
+          .from('orchestration_heartbeat')
+          .update({ last_beat: new Date().toISOString() })
+          .eq('id', 1);
       } catch (error) {
-        console.error('Initialization error:', error);
+        console.error('Heartbeat error:', error);
       }
     };
 
-    initializeEcosystem();
-  }, []); // Run once on mount
+    // Trigger immediately
+    triggerServerOrchestration();
+    
+    // Then trigger every 30 seconds to maintain server-side orchestration
+    const interval = setInterval(triggerServerOrchestration, 30000);
 
-  // Auto-orchestration interval
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
+    return () => clearInterval(interval);
+  }, []);
 
-    const runOrchestration = async () => {
-      if (!isAutoRunning) return;
-      
-      try {
-        console.log('🎮 Running orchestration...');
-        const { data, error } = await supabase.functions.invoke('supabase-functions-match-orchestrator');
-        if (error) {
-          console.error('Orchestration error:', error);
-        } else {
-          console.log('✅ Orchestration result:', data);
-        }
-      } catch (error) {
-        console.error('Orchestration error:', error);
-      }
-    };
-
-    if (isAutoRunning) {
-      // Run immediately on load
-      runOrchestration();
-      
-      // Then run every 30 seconds for more frequent updates
-      interval = setInterval(runOrchestration, 30 * 1000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isAutoRunning]);
-
-  // Fetch data periodically
+  // Fetch data periodically - this is just for display
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -117,6 +79,7 @@ export default function AutomatedFootballApp() {
         setLiveMatches(matchesRes.data || []);
         setRecentTransfers(transfersRes.data || []);
         setOrchestrationStatus(orchestrationRes.data || {});
+        setIsConnected(true);
 
         // Process wealth statistics
         if (wealthRes.data) {
@@ -138,16 +101,17 @@ export default function AutomatedFootballApp() {
         }
       } catch (error) {
         console.error('Error fetching data:', error);
+        setIsConnected(false);
       }
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 10000); // Update every 10 seconds for faster updates
+    const interval = setInterval(fetchData, 5000); // Update every 5 seconds for real-time feel
 
     return () => clearInterval(interval);
   }, []);
 
-  // Subscribe to real-time updates
+  // Subscribe to real-time updates for immediate changes
   useEffect(() => {
     const matchesChannel = supabase
       .channel('live-matches')
@@ -155,7 +119,7 @@ export default function AutomatedFootballApp() {
         { event: '*', schema: 'public', table: 'matches' },
         () => {
           // Refresh data when matches change
-          setTimeout(() => window.location.reload(), 1000);
+          window.location.reload();
         }
       )
       .subscribe();
@@ -170,9 +134,21 @@ export default function AutomatedFootballApp() {
       )
       .subscribe();
 
+    const transfersChannel = supabase
+      .channel('transfers')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'transfers' },
+        () => {
+          // Refresh data when new transfers happen
+          setTimeout(() => window.location.reload(), 1000);
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(matchesChannel);
       supabase.removeChannel(orchestrationChannel);
+      supabase.removeChannel(transfersChannel);
     };
   }, []);
 
@@ -209,27 +185,24 @@ export default function AutomatedFootballApp() {
               ⚽ Autonomous Football Universe
             </h1>
             <p className="text-gray-600">
-              Watch the complete football ecosystem unfold automatically - no admin needed!
+              Server-driven football ecosystem - same state for all clients worldwide!
             </p>
           </div>
           
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${orchestrationStatus.is_running ? 'bg-green-500 animate-pulse' : 'bg-blue-500'}`} />
+              <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
               <span className="text-sm font-medium">
-                {orchestrationStatus.is_running ? 'Processing...' : 'Active'}
+                {isConnected ? 'Connected' : 'Disconnected'}
               </span>
             </div>
             
-            <Button
-              variant={isAutoRunning ? "destructive" : "default"}
-              size="sm"
-              onClick={() => setIsAutoRunning(!isAutoRunning)}
-              className="flex items-center gap-2"
-            >
-              {isAutoRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              {isAutoRunning ? 'Pause' : 'Resume'} Auto
-            </Button>
+            <div className="flex items-center gap-2">
+              <div className={`w-3 h-3 rounded-full ${orchestrationStatus.is_running ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`} />
+              <span className="text-sm font-medium">
+                Server {orchestrationStatus.is_running ? 'Processing' : 'Active'}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -270,7 +243,7 @@ export default function AutomatedFootballApp() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Orchestration</CardTitle>
+              <CardTitle className="text-sm font-medium">Server Runs</CardTitle>
               <RotateCcw className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -313,7 +286,7 @@ export default function AutomatedFootballApp() {
                 <div className="text-center py-8 text-gray-500">
                   <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>No live matches at the moment</p>
-                  <p className="text-sm">New matches start automatically</p>
+                  <p className="text-sm">Server will start matches automatically</p>
                 </div>
               )}
             </CardContent>
@@ -350,7 +323,7 @@ export default function AutomatedFootballApp() {
                 <div className="text-center py-8 text-gray-500">
                   <DollarSign className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>No recent transfers</p>
-                  <p className="text-sm">Transfer activity happens automatically</p>
+                  <p className="text-sm">Server handles transfers automatically</p>
                 </div>
               )}
             </CardContent>
@@ -403,48 +376,48 @@ export default function AutomatedFootballApp() {
         {/* System Status */}
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>🤖 Autonomous Features</CardTitle>
+            <CardTitle>🖥️ Server-Side Autonomous System</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div>
                 <h3 className="font-semibold text-gray-700 mb-2">⚽ Match Simulation</h3>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Continuous match simulation</li>
+                  <li>• Server-driven match simulation</li>
                   <li>• Automatic fixture generation</li>
-                  <li>• Real-time score updates</li>
-                  <li>• League table progression</li>
+                  <li>• Synchronized across all clients</li>
+                  <li>• Consistent league progression</li>
                 </ul>
               </div>
               
               <div>
                 <h3 className="font-semibold text-gray-700 mb-2">💰 Transfer System</h3>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Wealth-based transfer activity</li>
-                  <li>• Automatic bid processing</li>
-                  <li>• Market value fluctuations</li>
-                  <li>• Youth academy graduates</li>
+                  <li>• Server-controlled transfers</li>
+                  <li>• Global market consistency</li>
+                  <li>• Same prices for all clients</li>
+                  <li>• Synchronized player movements</li>
                 </ul>
               </div>
               
               <div>
                 <h3 className="font-semibold text-gray-700 mb-2">📈 Season Progression</h3>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Player aging & development</li>
-                  <li>• Injury system</li>
-                  <li>• Contract renewals</li>
-                  <li>• Promotion/relegation</li>
+                  <li>• Universal player aging</li>
+                  <li>• Synchronized injuries</li>
+                  <li>• Global contract system</li>
+                  <li>• Consistent promotions</li>
                 </ul>
               </div>
             </div>
             
             <Separator className="my-6" />
             
-            <div className="bg-green-50 rounded-lg p-4">
-              <h4 className="font-semibold text-green-800 mb-2">🎮 Fully Autonomous</h4>
-              <p className="text-sm text-green-700">
-                The entire football ecosystem runs automatically every 2 minutes. No admin intervention needed - 
-                just watch as teams compete, players transfer, matches play out, and seasons progress naturally!
+            <div className="bg-blue-50 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-800 mb-2">🌍 Global Synchronization</h4>
+              <p className="text-sm text-blue-700">
+                The entire football ecosystem runs on the server. Every client worldwide sees the exact same matches, 
+                scores, transfers, and season progression - whether they join at the start or halfway through the season!
               </p>
             </div>
           </CardContent>
