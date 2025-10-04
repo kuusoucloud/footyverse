@@ -316,6 +316,33 @@ export default function AdminPanel() {
     }
   };
 
+  const generateMoreFixtures = async () => {
+    setLoading(true);
+    setStatus("🏆 Generating additional fixtures for all tiers...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "supabase-functions-generate-fixtures",
+        {
+          body: { 
+            action: "generate_all_fixtures",
+            force_regenerate: true  // Force regenerate to create fresh fixtures
+          },
+        },
+      );
+
+      if (error) throw error;
+      setStatus(`✅ ${data.message} - ${data.total_fixtures} fixtures created across ${data.tiers_processed} tiers`);
+      checkSystemStatus();
+    } catch (error) {
+      setStatus(
+        `❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const regenerateFixturesForNewSeason = async () => {
     setLoading(true);
     setStatus("🔄 Regenerating fixtures for new season...");
@@ -632,6 +659,20 @@ export default function AdminPanel() {
                 <div>
                   <div className="font-medium text-white">New Season Fixtures</div>
                   <div className="text-xs text-slate-400">Generate for new season</div>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={generateMoreFixtures}
+              disabled={loading}
+              className="glass-button p-4 rounded-lg text-left hover:glass-primary transition-all duration-300 disabled:opacity-50"
+            >
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-orange-400" />
+                <div>
+                  <div className="font-medium text-white">Generate More Fixtures</div>
+                  <div className="text-xs text-slate-400">Create fresh season schedule</div>
                 </div>
               </div>
             </button>
