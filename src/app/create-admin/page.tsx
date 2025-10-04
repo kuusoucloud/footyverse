@@ -1,17 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { createClient } from '@/utils/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function CreateAdminPage() {
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<string>('');
-  const [created, setCreated] = useState(false);
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('admin123');
   const [adminSecret, setAdminSecret] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState('');
+  const [created, setCreated] = useState(false);
+
   const supabase = createClient();
 
   const createAdmin = async () => {
@@ -26,8 +28,8 @@ export default function CreateAdminPage() {
     try {
       const { data, error } = await supabase.functions.invoke('supabase-functions-create-admin', {
         body: { 
-          email: 'admin@footyverse.com', 
-          password: 'adminb23456',
+          username,
+          password,
           admin_secret: adminSecret
         }
       });
@@ -47,90 +49,74 @@ export default function CreateAdminPage() {
     }
   };
 
-  const signInAsAdmin = async () => {
-    setLoading(true);
-    setStatus('Signing in as admin...');
-    
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: 'admin@footyverse.com',
-        password: 'adminb23456'
-      });
-      
-      if (error) throw error;
-      setStatus('✅ Signed in successfully! Redirecting to admin panel...');
-      
-      // Redirect to admin panel
-      setTimeout(() => {
-        window.location.href = '/admin';
-      }, 1000);
-    } catch (error) {
-      setStatus(`❌ Sign in failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>🔒 Secure Admin Setup</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Create Admin Account</CardTitle>
+          <CardDescription className="text-center">
+            Set up the initial admin user for FootyVerse
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Admin Secret Key</Label>
+          <div>
+            <label className="block text-sm font-medium mb-2">Username</label>
             <Input
-              type="password"
-              placeholder="Enter admin secret key"
-              value={adminSecret}
-              onChange={(e) => setAdminSecret(e.target.value)}
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="admin"
               disabled={created}
             />
-            <div className="text-xs text-gray-500">
-              Required to prevent unauthorized admin creation
-            </div>
           </div>
-
-          <div className="space-y-2">
-            <Label>Admin Credentials</Label>
-            <div className="text-sm text-gray-600 bg-gray-100 p-3 rounded">
-              <div><strong>Email:</strong> admin@footyverse.com</div>
-              <div><strong>Password:</strong> adminb23456</div>
-            </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-2">Password</label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="admin123"
+              disabled={created}
+            />
           </div>
-
-          {!created ? (
-            <Button 
-              onClick={createAdmin} 
-              disabled={loading || !adminSecret.trim()}
-              className="w-full"
-            >
-              {loading ? 'Creating...' : 'Create Admin Account'}
-            </Button>
-          ) : (
-            <Button 
-              onClick={signInAsAdmin} 
-              disabled={loading}
-              className="w-full"
-              variant="destructive"
-            >
-              {loading ? 'Signing in...' : 'Sign In as Admin'}
-            </Button>
-          )}
-
+          
+          <div>
+            <label className="block text-sm font-medium mb-2">Admin Secret</label>
+            <Input
+              type="password"
+              value={adminSecret}
+              onChange={(e) => setAdminSecret(e.target.value)}
+              placeholder="Enter admin secret key"
+              disabled={created}
+            />
+          </div>
+          
+          <Button 
+            onClick={createAdmin} 
+            disabled={loading || created}
+            className="w-full"
+          >
+            {loading ? 'Creating...' : created ? 'Admin Created ✅' : 'Create Admin Account'}
+          </Button>
+          
           {status && (
-            <div className="p-3 bg-gray-100 rounded text-sm font-mono">
+            <div className={`p-3 rounded-md text-sm ${
+              status.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }`}>
               {status}
             </div>
           )}
-
-          <div className="text-xs text-gray-500 space-y-1">
-            <p><strong>🔒 Security:</strong></p>
-            <p>• Admin secret key required</p>
-            <p>• Only one admin account allowed</p>
-            <p>• Prevents unauthorized access</p>
-          </div>
+          
+          {created && (
+            <div className="mt-4 p-4 bg-blue-100 rounded-md">
+              <h3 className="font-semibold text-blue-800">Admin Account Created!</h3>
+              <p className="text-sm text-blue-700 mt-1">
+                Username: <code className="bg-blue-200 px-1 rounded">{username}</code><br/>
+                You can now sign in to the admin panel.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
