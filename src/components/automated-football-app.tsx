@@ -98,7 +98,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
             severity, 
             recovery_weeks_needed,
             recovery_weeks_completed,
-            player:player_id(name, team:team_id(name))
+            player:player_id(name, team_id(name))
           `).eq('is_active', true).limit(50)
         ]);
 
@@ -136,9 +136,9 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
         setSeasonProgress(seasonRes.data || []);
         setGlobalSeason(globalSeasonRes.data || null);
         
-        // Filter out injuries with null player data
-        const validInjuries = (injuriesRes.data || []).filter(injury => 
-          injury.player && injury.player.name
+        // Filter out injuries with null player data - fix the type issue
+        const validInjuries = (injuriesRes.data || []).filter((injury: any) => 
+          injury.player && typeof injury.player === 'object' && injury.player.name
         );
         setActiveInjuries(validInjuries);
         
