@@ -15,13 +15,23 @@ export default function AdminPanel() {
     fixtures: 0,
     liveMatches: 0
   });
+  const [orchestratorStatus, setOrchestratorStatus] = useState({
+    running: false,
+    activeMatches: 0,
+    lastCheck: ''
+  });
   const [autoSeeding, setAutoSeeding] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
     checkSystemStatus();
+    checkOrchestratorStatus();
     // Auto-seed if system is empty
     autoSeedIfNeeded();
+    
+    // Check orchestrator status every 10 seconds
+    const interval = setInterval(checkOrchestratorStatus, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const checkSystemStatus = async () => {
@@ -44,6 +54,88 @@ export default function AdminPanel() {
     }
   };
 
+  const checkOrchestratorStatus = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('supabase-functions-match-orchestrator', {
+        body: {},
+        method: 'GET'
+      });
+      
+      if (!error && data) {
+        setOrchestratorStatus({
+          running: data.status === 'running',
+          activeMatches: data.active_matches || 0,
+          lastCheck: new Date().toLocaleTimeString()
+        });
+      }
+    } catch (error) {
+      console.error('Failed to check orchestrator status:', error);
+    }
+  };
+
+  const startOrchestrator = async () => {
+    setLoading(true);
+    setStatus('🚀 Starting 24/7 Match Orchestrator...');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('supabase-functions-match-orchestrator', {
+        body: {},
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (error) throw error;
+      setStatus(`✅ ${data.message}`);
+      checkOrchestratorStatus();
+      checkSystemStatus();
+    } catch (error) {
+      setStatus(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const stopOrchestrator = async () => {
+    setLoading(true);
+    setStatus('⏹️ Stopping Match Orchestrator...');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('supabase-functions-match-orchestrator', {
+        body: { action: 'stop' },
+        method: 'POST'
+      });
+      
+      if (error) throw error;
+      setStatus(`✅ ${data.message}`);
+      checkOrchestratorStatus();
+    } catch (error) {
+      setStatus(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const forceNextMatch = async () => {
+    setLoading(true);
+    setStatus('⚡ Forcing next match to start...');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('supabase-functions-match-orchestrator', {
+        body: { action: 'force_next' },
+        method: 'POST'
+      });
+      
+      if (error) throw error;
+      setStatus(`✅ ${data.message}`);
+      checkOrchestratorStatus();
+      checkSystemStatus();
+    } catch (error) {
+      setStatus(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const autoSeedIfNeeded = async () => {
     try {
       const { data: teams } = await supabase.from('teams').select('id').limit(1);
@@ -59,11 +151,11 @@ export default function AdminPanel() {
         setTimeout(async () => {
           await generateFixtures();
           
-          // Wait another moment then start first live match
+          // Wait another moment then start orchestrator
           setTimeout(async () => {
-            await startLiveMatch();
+            await startOrchestrator();
             setAutoSeeding(false);
-            setStatus('✅ System auto-seeded and first match started!');
+            setStatus('✅ System auto-seeded and 24/7 matches started!');
             checkSystemStatus();
           }, 2000);
         }, 2000);
@@ -112,27 +204,8 @@ export default function AdminPanel() {
     }
   };
 
-  const startLiveMatch = async () => {
-    setLoading(true);
-    if (!autoSeeding) setStatus('Starting live match...');
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('supabase-functions-seed-data', {
-        body: { action: 'start_live_match' }
-      });
-      
-      if (error) throw error;
-      if (!autoSeeding) setStatus(`✅ ${data.message}`);
-      checkSystemStatus();
-    } catch (error) {
-      setStatus(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      if (!autoSeeding) setLoading(false);
-    }
-  };
-
   const resetSystem = async () => {
-    if (!confirm('Are you sure you want to reset the entire system? This will delete all data.')) {
+    if (!confirm('Are you sure you want to reset the entire system? This will delete all data and stop the orchestrator.')) {
       return;
     }
 
@@ -140,6 +213,9 @@ export default function AdminPanel() {
     setStatus('Resetting system...');
     
     try {
+      // Stop orchestrator first
+      await stopOrchestrator();
+      
       // Delete all data in order
       await supabase.from('fixtures').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('players').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -147,6 +223,7 @@ export default function AdminPanel() {
       
       setStatus('✅ System reset complete');
       checkSystemStatus();
+      checkOrchestratorStatus();
     } catch (error) {
       setStatus(`❌ Reset failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
@@ -156,12 +233,17 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">🔒 Football Admin Panel</h1>
-          <Badge variant={systemStatus.liveMatches > 0 ? "destructive" : "secondary"}>
-            {systemStatus.liveMatches > 0 ? "LIVE MATCH ACTIVE" : "NO LIVE MATCHES"}
-          </Badge>
+          <h1 className="text-3xl font-bold">⚽ Football Universe Control Center</h1>
+          <div className="flex space-x-2">
+            <Badge variant={orchestratorStatus.running ? "destructive" : "secondary"}>
+              {orchestratorStatus.running ? "🔴 ORCHESTRATOR LIVE" : "⚫ ORCHESTRATOR OFF"}
+            </Badge>
+            <Badge variant={systemStatus.liveMatches > 0 ? "destructive" : "secondary"}>
+              {systemStatus.liveMatches > 0 ? `⚽ ${systemStatus.liveMatches} LIVE` : "NO LIVE MATCHES"}
+            </Badge>
+          </div>
         </div>
 
         {autoSeeding && (
@@ -169,16 +251,73 @@ export default function AdminPanel() {
             <CardContent className="p-6">
               <div className="flex items-center space-x-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span className="text-blue-800 font-medium">Auto-seeding system in progress...</span>
+                <span className="text-blue-800 font-medium">Auto-seeding system and starting 24/7 matches...</span>
               </div>
             </CardContent>
           </Card>
         )}
 
+        {/* 24/7 Match Orchestrator Status */}
+        <Card className="mb-8 border-red-200">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <span>🚀 24/7 Match Orchestrator</span>
+              <Badge variant={orchestratorStatus.running ? "destructive" : "secondary"}>
+                {orchestratorStatus.running ? "RUNNING" : "STOPPED"}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">
+                  {orchestratorStatus.running ? "🔴 LIVE" : "⚫ OFF"}
+                </div>
+                <div className="text-sm text-gray-600">Status</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{orchestratorStatus.activeMatches}</div>
+                <div className="text-sm text-gray-600">Active Matches</div>
+              </div>
+              <div className="text-center">
+                <div className="text-sm font-mono text-gray-600">{orchestratorStatus.lastCheck}</div>
+                <div className="text-sm text-gray-600">Last Check</div>
+              </div>
+            </div>
+            
+            <div className="flex space-x-2">
+              <Button 
+                onClick={startOrchestrator} 
+                disabled={loading || autoSeeding || orchestratorStatus.running}
+                variant="destructive"
+                size="sm"
+              >
+                🚀 Start 24/7 Matches
+              </Button>
+              <Button 
+                onClick={stopOrchestrator} 
+                disabled={loading || autoSeeding || !orchestratorStatus.running}
+                variant="outline"
+                size="sm"
+              >
+                ⏹️ Stop Orchestrator
+              </Button>
+              <Button 
+                onClick={forceNextMatch} 
+                disabled={loading || autoSeeding || !orchestratorStatus.running}
+                variant="secondary"
+                size="sm"
+              >
+                ⚡ Force Next Match
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* System Status */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>System Status</CardTitle>
+            <CardTitle>📊 System Status</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -228,7 +367,7 @@ export default function AdminPanel() {
             </CardHeader>
             <CardContent>
               <p className="text-xs text-gray-600 mb-4">
-                Create league fixtures
+                Create league fixtures with odds
               </p>
               <Button 
                 onClick={generateFixtures} 
@@ -243,20 +382,20 @@ export default function AdminPanel() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm">Start Live Match</CardTitle>
+              <CardTitle className="text-sm">Force Next Match</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-xs text-gray-600 mb-4">
-                Start match simulation
+                Manually trigger next match
               </p>
               <Button 
-                onClick={startLiveMatch} 
+                onClick={forceNextMatch} 
                 disabled={loading || autoSeeding}
                 className="w-full"
                 variant="destructive"
                 size="sm"
               >
-                Start Live Match
+                ⚡ Force Match
               </Button>
             </CardContent>
           </Card>
@@ -267,7 +406,7 @@ export default function AdminPanel() {
             </CardHeader>
             <CardContent>
               <p className="text-xs text-gray-600 mb-4">
-                Delete all data
+                Delete all data & stop matches
               </p>
               <Button 
                 onClick={resetSystem} 
@@ -294,15 +433,16 @@ export default function AdminPanel() {
 
         <Card>
           <CardHeader>
-            <CardTitle>🔒 Secure Admin Features</CardTitle>
+            <CardTitle>🚀 24/7 Football Universe Features</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 text-sm">
-              <p><strong>🤖 Auto-Seeding:</strong> System automatically seeds data on first visit</p>
-              <p><strong>🔐 Authentication:</strong> Requires login to access admin panel</p>
-              <p><strong>📊 Real-time Status:</strong> Live system monitoring and statistics</p>
-              <p><strong>🎮 One-Click Setup:</strong> Complete system initialization in seconds</p>
-              <p><strong>🔄 Reset Capability:</strong> Clean slate for testing and development</p>
+              <p><strong>⚽ Continuous Matches:</strong> Always one match running 24/7</p>
+              <p><strong>🎲 Dynamic Odds:</strong> ELO-based betting odds for every match</p>
+              <p><strong>🏆 Auto-Fixtures:</strong> Generates new rounds automatically</p>
+              <p><strong>📊 Live Statistics:</strong> Real-time match data and standings</p>
+              <p><strong>🤖 Smart Orchestration:</strong> Seamless match transitions</p>
+              <p><strong>🔄 Auto-Recovery:</strong> Restarts matches if system fails</p>
             </div>
           </CardContent>
         </Card>

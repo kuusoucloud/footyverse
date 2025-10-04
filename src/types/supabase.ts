@@ -104,6 +104,7 @@ export type Database = {
           id: string
           league_id: string | null
           match_channel: string | null
+          odds: Json | null
           round: number
           scheduled_at: string
           season_id: string | null
@@ -116,6 +117,7 @@ export type Database = {
           id?: string
           league_id?: string | null
           match_channel?: string | null
+          odds?: Json | null
           round: number
           scheduled_at: string
           season_id?: string | null
@@ -128,6 +130,7 @@ export type Database = {
           id?: string
           league_id?: string | null
           match_channel?: string | null
+          odds?: Json | null
           round?: number
           scheduled_at?: string
           season_id?: string | null
@@ -533,7 +536,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_season_fixtures: {
+        Args: { p_season_id: string }
+        Returns: number
+      }
+      start_continuous_matches: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_team_standings: {
+        Args: {
+          p_drawn: number
+          p_goals_against: number
+          p_goals_for: number
+          p_league_id: string
+          p_lost: number
+          p_season_id: string
+          p_team_id: string
+          p_won: number
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
