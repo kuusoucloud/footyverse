@@ -27,6 +27,36 @@ import {
 
 const supabase = createClient();
 
+// Generate random MALE player avatar based on nationality/ethnicity
+const getPlayerAvatar = (nationality: string, name: string) => {
+  const seed = name.toLowerCase().replace(/\s+/g, '');
+  
+  // Use male-only avatar styles
+  const maleAvatarStyles = [
+    'adventurer', 'adventurer-neutral', 'big-ears', 'big-ears-neutral', 
+    'bottts', 'croodles', 'croodles-neutral', 'fun-emoji', 'identicon', 
+    'initials', 'micah', 'miniavs', 'pixel-art', 'pixel-art-neutral'
+  ];
+  
+  // Use different avatar styles based on nationality for variety
+  const nationalityMap: { [key: string]: string } = {
+    'England': 'adventurer',
+    'Spain': 'big-ears',
+    'France': 'micah',
+    'Germany': 'adventurer-neutral',
+    'Italy': 'big-ears-neutral',
+    'Brazil': 'croodles',
+    'Argentina': 'croodles-neutral',
+    'Portugal': 'miniavs',
+    'Netherlands': 'pixel-art',
+    'Belgium': 'pixel-art-neutral'
+  };
+  
+  const style = nationalityMap[nationality] || 'adventurer';
+  // Add male-specific options to ensure male avatars
+  return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&gender=male`;
+};
+
 interface TeamDetailsProps {
   teamId: string;
   onBack: () => void;
@@ -333,32 +363,96 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                   <Users className="h-5 w-5 text-blue-400" />
                   Squad ({players.length} players)
                 </h3>
-                <div className="grid gap-4">
-                  {players.map((player) => (
-                    <div 
-                      key={player.id} 
-                      className="glass-row p-4 rounded-lg cursor-pointer hover:bg-white/10 transition-all duration-300"
-                      onClick={() => setSelectedPlayerId(player.id)}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <div className="font-medium text-white">{player.name}</div>
-                          <div className="text-sm text-slate-400">
-                            {player.position} • Age {player.age}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-white">
-                            Overall: {player.overall_rating}
-                          </div>
-                          <div className="text-xs text-slate-400">
-                            £{player.weekly_wage?.toLocaleString()}/week
-                          </div>
-                        </div>
+                
+                {/* Position Groups */}
+                {['GK', 'DF', 'MF', 'FW'].map(position => {
+                  const positionPlayers = players.filter(p => p.position === position);
+                  if (positionPlayers.length === 0) return null;
+                  
+                  return (
+                    <div key={position} className="mb-8">
+                      <h4 className="text-md font-semibold text-slate-300 mb-4 flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${
+                          position === 'GK' ? 'bg-yellow-400' :
+                          position === 'DF' ? 'bg-blue-400' :
+                          position === 'MF' ? 'bg-green-400' : 'bg-red-400'
+                        }`}></div>
+                        {position === 'GK' ? 'Goalkeepers' :
+                         position === 'DF' ? 'Defenders' :
+                         position === 'MF' ? 'Midfielders' : 'Forwards'} ({positionPlayers.length})
+                      </h4>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {positionPlayers
+                          .sort((a, b) => b.overall_rating - a.overall_rating)
+                          .map((player, index) => {
+                            const form = getFormRating(player.form_rating || 5);
+                            const skill = getSkillRating(player.overall_rating);
+                            
+                            return (
+                              <div 
+                                key={player.id} 
+                                className="glass-row p-4 rounded-lg cursor-pointer hover:bg-white/10 transition-all duration-300 border border-white/5 hover:border-white/20"
+                                onClick={() => setSelectedPlayerId(player.id)}
+                              >
+                                <div className="flex items-center gap-3 mb-3">
+                                  <div className="w-12 h-12 rounded-lg overflow-hidden">
+                                    <img 
+                                      src={getPlayerAvatar(player.nationality || 'England', player.name)}
+                                      alt={player.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="font-medium text-white text-sm">{player.name}</div>
+                                    <div className="text-xs text-slate-400">Age {player.age} • #{player.jersey_number || (index + 1)}</div>
+                                  </div>
+                                  <div className={`px-2 py-1 rounded text-xs font-medium ${getPositionColor(player.position)}`}>
+                                    {player.position}
+                                  </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                  <div className="text-center">
+                                    <div className="text-slate-400">Overall</div>
+                                    <div className={`font-bold ${skill.color}`}>{player.overall_rating}</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-slate-400">Form</div>
+                                    <div className={`font-bold ${form.color} flex items-center justify-center gap-1`}>
+                                      {form.icon}
+                                      {(player.form_rating || 5).toFixed(1)}
+                                    </div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-slate-400">Value</div>
+                                    <div className="font-bold text-white">
+                                      {formatCurrency(player.market_value || 0)}
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="mt-3 pt-3 border-t border-white/10">
+                                  <div className="flex justify-between items-center text-xs">
+                                    <span className="text-slate-400">Weekly Wage</span>
+                                    <span className="text-white font-medium">
+                                      £{player.weekly_wage?.toLocaleString()}/w
+                                    </span>
+                                  </div>
+                                  {player.injury_status !== 'fit' && (
+                                    <div className="flex items-center gap-1 mt-1">
+                                      <AlertTriangle className="h-3 w-3 text-red-400" />
+                                      <span className="text-red-400 text-xs">Injured</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
             )}
 
