@@ -201,16 +201,28 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
           
           <div className="flex items-center gap-4">
             {team.logo_url ? (
-              <img 
-                src={team.logo_url} 
-                alt={`${team.name} logo`}
-                className="w-16 h-16 rounded-full border-4 border-white shadow-lg bg-white p-1"
-              />
+              <div className="relative">
+                <img 
+                  src={team.logo_url} 
+                  alt={`${team.name} logo`}
+                  className="w-20 h-20 rounded-lg border-4 border-white shadow-xl bg-white p-2"
+                  style={{ 
+                    filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))',
+                  }}
+                />
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white shadow-md"
+                     style={{ backgroundColor: team.secondary_color }}>
+                </div>
+              </div>
             ) : (
               <div 
-                className="w-16 h-16 rounded-full border-4 border-white shadow-lg"
+                className="w-20 h-20 rounded-lg border-4 border-white shadow-xl flex items-center justify-center"
                 style={{ backgroundColor: team.primary_color }}
-              />
+              >
+                <span className="text-white font-bold text-xl">
+                  {team.name.split(' ').map(word => word[0]).join('').slice(0, 3)}
+                </span>
+              </div>
             )}
             <div>
               <h1 className="text-4xl font-bold text-gray-800">{team.name}</h1>
@@ -408,7 +420,7 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                                 <img 
                                   src={match.home_team.logo_url} 
                                   alt={`${match.home_team.name} logo`}
-                                  className="w-6 h-6 rounded-full bg-white p-0.5"
+                                  className="w-8 h-8 rounded border-2 border-white shadow-md bg-white p-1"
                                 />
                               )}
                               <div className="text-center">
@@ -424,7 +436,7 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                                 <img 
                                   src={match.away_team.logo_url} 
                                   alt={`${match.away_team.name} logo`}
-                                  className="w-6 h-6 rounded-full bg-white p-0.5"
+                                  className="w-8 h-8 rounded border-2 border-white shadow-md bg-white p-1"
                                 />
                               )}
                             </div>
@@ -464,7 +476,7 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                                 <img 
                                   src={match.home_team.logo_url} 
                                   alt={`${match.home_team.name} logo`}
-                                  className="w-6 h-6 rounded-full bg-white p-0.5"
+                                  className="w-8 h-8 rounded border-2 border-white shadow-md bg-white p-1"
                                 />
                               )}
                               <div className="text-center">
@@ -480,7 +492,7 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                                 <img 
                                   src={match.away_team.logo_url} 
                                   alt={`${match.away_team.name} logo`}
-                                  className="w-6 h-6 rounded-full bg-white p-0.5"
+                                  className="w-8 h-8 rounded border-2 border-white shadow-md bg-white p-1"
                                 />
                               )}
                             </div>

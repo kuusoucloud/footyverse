@@ -308,16 +308,20 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
                         <div className="col-span-4">
                           <div className="flex items-center gap-2">
                             {standing.team?.logo_url ? (
-                              <img 
-                                src={standing.team.logo_url} 
-                                alt={`${standing.team.name} logo`}
-                                className="w-6 h-6 rounded-full bg-white p-0.5"
-                              />
+                              <div className="relative">
+                                <img 
+                                  src={standing.team.logo_url} 
+                                  alt={`${standing.team.name} logo`}
+                                  className="w-8 h-8 rounded border-2 border-white shadow-md bg-white p-1"
+                                />
+                              </div>
                             ) : (
                               <div 
-                                className="w-4 h-4 rounded-full border"
+                                className="w-8 h-8 rounded border-2 border-white shadow-md flex items-center justify-center text-xs font-bold text-white"
                                 style={{ backgroundColor: standing.team?.primary_color }}
-                              />
+                              >
+                                {standing.team?.name.split(' ').map(word => word[0]).join('').slice(0, 2)}
+                              </div>
                             )}
                             <span className={`font-medium ${onTeamSelect ? 'text-blue-600 hover:text-blue-800' : ''}`}>
                               {standing.team?.name}
