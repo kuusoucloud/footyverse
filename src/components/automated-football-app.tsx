@@ -69,7 +69,11 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
         const [teamsRes, playersRes, fixturesRes, standingsRes] = await Promise.all([
           supabase.from('teams').select('id'),
           supabase.from('players').select('id'),
-          supabase.from('fixtures').select('*').eq('status', 'live').limit(10),
+          supabase.from('fixtures').select(`
+            *,
+            home_team:home_team_id(name, logo_url, primary_color),
+            away_team:away_team_id(name, logo_url, primary_color)
+          `).eq('status', 'live').limit(10),
           supabase.from('team_standings').select(`
             *,
             team:teams(name, tier, elo, primary_color, secondary_color, logo_url)
@@ -379,17 +383,96 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
                 {liveMatches.length > 0 ? (
                   <div className="space-y-4">
                     {liveMatches.map((fixture) => (
-                      <div key={fixture.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                        <div className="flex items-center gap-3">
+                      <div key={fixture.id} className="bg-red-50 rounded-lg p-4 border border-red-200">
+                        <div className="flex items-center justify-between mb-3">
                           <Badge variant="destructive" className="animate-pulse">LIVE</Badge>
-                          <div>
-                            <p className="font-semibold">Match ID: {fixture.id.slice(0, 8)}</p>
-                            <p className="text-sm text-gray-600">
-                              Status: {fixture.status} • Round {fixture.round}
-                            </p>
+                          <div className="text-sm text-gray-600">
+                            Round {fixture.round} • {fixture.minute || 0}'
                           </div>
                         </div>
-                        <Clock className="w-4 h-4 text-red-600" />
+                        
+                        <div className="flex items-center justify-between">
+                          {/* Home Team */}
+                          <div className="flex items-center gap-3 flex-1">
+                            {fixture.home_team?.logo_url ? (
+                              <img 
+                                src={fixture.home_team.logo_url} 
+                                alt={`${fixture.home_team.name} logo`}
+                                className="w-10 h-10 rounded border-2 border-white shadow-md bg-white p-1"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const fallback = target.nextElementSibling as HTMLElement;
+                                  if (fallback) fallback.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className="w-10 h-10 rounded border-2 border-white shadow-md flex items-center justify-center text-sm font-bold text-white"
+                              style={{ 
+                                backgroundColor: fixture.home_team?.primary_color || '#3B82F6',
+                                display: fixture.home_team?.logo_url ? 'none' : 'flex'
+                              }}
+                            >
+                              {fixture.home_team?.name?.split(' ').map((word: string) => word[0]).join('').slice(0, 2) || 'HT'}
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-800">{fixture.home_team?.name || 'Home Team'}</p>
+                            </div>
+                          </div>
+
+                          {/* Score */}
+                          <div className="mx-6 text-center">
+                            <div className="text-2xl font-bold text-gray-800">
+                              {fixture.home_score || 0} - {fixture.away_score || 0}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {fixture.minute ? `${fixture.minute}'` : "0'"}
+                            </div>
+                          </div>
+
+                          {/* Away Team */}
+                          <div className="flex items-center gap-3 flex-1 justify-end">
+                            <div className="flex-1 text-right">
+                              <p className="font-semibold text-gray-800">{fixture.away_team?.name || 'Away Team'}</p>
+                            </div>
+                            {fixture.away_team?.logo_url ? (
+                              <img 
+                                src={fixture.away_team.logo_url} 
+                                alt={`${fixture.away_team.name} logo`}
+                                className="w-10 h-10 rounded border-2 border-white shadow-md bg-white p-1"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const fallback = target.nextElementSibling as HTMLElement;
+                                  if (fallback) fallback.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className="w-10 h-10 rounded border-2 border-white shadow-md flex items-center justify-center text-sm font-bold text-white"
+                              style={{ 
+                                backgroundColor: fixture.away_team?.primary_color || '#EF4444',
+                                display: fixture.away_team?.logo_url ? 'none' : 'flex'
+                              }}
+                            >
+                              {fixture.away_team?.name?.split(' ').map((word: string) => word[0]).join('').slice(0, 2) || 'AT'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Match Events or Additional Info */}
+                        <div className="mt-3 pt-3 border-t border-red-200">
+                          <div className="flex items-center justify-between text-sm text-gray-600">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-red-600" />
+                              <span>Match in progress</span>
+                            </div>
+                            <div className="text-xs">
+                              Match ID: {fixture.id.slice(0, 8)}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
