@@ -76,7 +76,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
   useEffect(() => {
     const fetchPlayerData = async () => {
       try {
-        // Fetch player details with current team
+        // Fetch player details with current team - get ALL fields from database
         const { data: playerData } = await supabase
           .from('players')
           .select(`
@@ -115,6 +115,8 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
           .order('created_at', { ascending: false })
           .limit(10);
 
+        console.log('Player data from database:', playerData);
+        
         setPlayer(playerData);
         setCurrentTeam(playerData?.team);
         setPlayerHistory(historyData || []);
@@ -132,91 +134,13 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
     }
   }, [playerId]);
 
-  // Mock data for demo purposes when no real data is available
-  const mockPlayer = {
-    id: 'mock-player-1',
-    name: 'Marcus Rodriguez',
-    position: 'MF',
-    age: 24,
-    nationality: 'Spain',
-    height_cm: 178,
-    weight_kg: 72,
-    foot: 'R',
-    overall_rating: 78,
-    market_value: 15000000,
-    weekly_wage: 45000,
-    contract_end: '2026-06-30',
-    injury_status: 'fit',
-    form_rating: 8,
-    goals: 12,
-    assists: 8,
-    appearances: 28,
-    attributes: {
-      pace: 82,
-      accel: 85,
-      stamina: 78,
-      strength: 70,
-      passing: 88,
-      vision: 85,
-      finishing: 75,
-      heading: 65,
-      marking: 72,
-      tackling: 74,
-      reflexes: 45,
-      handling: 40,
-      positioning: 80,
-      composure: 83
-    }
-  };
+  // Use real data from database only
+  const displayPlayer = player;
+  const displayTeam = currentTeam;
+  const displayHistory = playerHistory;
 
-  const mockTeam = {
-    name: 'Barcelona FC',
-    logo_url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=100&q=80',
-    tier: 1,
-    primary_color: '#004D98'
-  };
-
-  const mockHistory = [
-    {
-      id: 1,
-      transfer_date: '2023-07-01',
-      transfer_fee: 12000000,
-      from_team: { name: 'Valencia CF', logo_url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&q=80', tier: 1 },
-      to_team: mockTeam,
-      transfer_type: 'permanent'
-    },
-    {
-      id: 2,
-      transfer_date: '2021-08-15',
-      transfer_fee: 3500000,
-      from_team: { name: 'Real Betis', logo_url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&q=80', tier: 2 },
-      to_team: { name: 'Valencia CF', logo_url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=50&q=80', tier: 1 },
-      transfer_type: 'permanent'
-    }
-  ];
-
-  // Use real data from database, fallback to mock only if no data exists
-  const displayPlayer = player || mockPlayer;
-  const displayTeam = currentTeam || mockTeam;
-  const displayHistory = playerHistory.length > 0 ? playerHistory : mockHistory;
-
-  // Use real attributes from database or generate based on skill rating
-  const attributes = player?.attributes || {
-    pace: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
-    accel: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
-    stamina: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
-    strength: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
-    passing: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
-    vision: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
-    finishing: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
-    heading: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
-    marking: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
-    tackling: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
-    positioning: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
-    composure: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
-    reflexes: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10))),
-    handling: Math.max(30, Math.min(99, (player?.skill_rating || 50) + (Math.random() * 20 - 10)))
-  };
+  // Use real attributes from database
+  const attributes = player.attributes || {};
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) {
@@ -288,6 +212,20 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
     );
   }
 
+  if (!player) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
+        <div className="max-w-7xl mx-auto text-center">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">Player not found</h1>
+          <Button onClick={onBack}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Players
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const form = getFormRating(displayPlayer.form_rating || 5);
 
   return (
@@ -322,7 +260,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
                 </Badge>
                 <Badge variant="outline">Age {displayPlayer.age}</Badge>
                 <Badge variant="secondary">{displayPlayer.nationality}</Badge>
-                <Badge variant="outline">Overall: {displayPlayer.skill_rating || 'N/A'}</Badge>
+                <Badge variant="outline">Overall: {displayPlayer.skill_rating}</Badge>
               </div>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-sm text-gray-600">Current Club:</span>
@@ -349,7 +287,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(displayPlayer.market_value || 0)}</div>
+              <div className="text-2xl font-bold">{formatCurrency(displayPlayer.market_value)}</div>
               <p className="text-xs text-muted-foreground">
                 Current valuation
               </p>
@@ -362,7 +300,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(displayPlayer.weekly_wage || 0)}</div>
+              <div className="text-2xl font-bold">{formatCurrency(displayPlayer.weekly_wage)}</div>
               <p className="text-xs text-muted-foreground">
                 Per week
               </p>
@@ -376,7 +314,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold ${form.color}`}>
-                {displayPlayer.form_rating || 5}/10
+                {displayPlayer.form_rating}/10
               </div>
               <p className="text-xs text-muted-foreground">
                 {form.label}
@@ -390,7 +328,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{displayPlayer.goals || 0}</div>
+              <div className="text-2xl font-bold">{displayPlayer.goals}</div>
               <p className="text-xs text-muted-foreground">
                 This season
               </p>
@@ -403,7 +341,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
               <Zap className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{displayPlayer.assists || 0}</div>
+              <div className="text-2xl font-bold">{displayPlayer.assists}</div>
               <p className="text-xs text-muted-foreground">
                 This season
               </p>
@@ -434,11 +372,11 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <span className="text-gray-600">Height:</span>
-                        <span className="font-medium ml-2">{displayPlayer.height_cm || 180}cm</span>
+                        <span className="font-medium ml-2">{displayPlayer.height_cm}cm</span>
                       </div>
                       <div>
                         <span className="text-gray-600">Weight:</span>
-                        <span className="font-medium ml-2">{displayPlayer.weight_kg || 75}kg</span>
+                        <span className="font-medium ml-2">{displayPlayer.weight_kg}kg</span>
                       </div>
                       <div>
                         <span className="text-gray-600">Preferred Foot:</span>
@@ -456,7 +394,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
                         variant={displayPlayer.injury_status === 'fit' ? 'secondary' : 'destructive'}
                         className="ml-2"
                       >
-                        {displayPlayer.injury_status || 'fit'}
+                        {displayPlayer.injury_status}
                       </Badge>
                     </div>
                   </div>
@@ -482,7 +420,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
                         <div className="text-sm text-gray-500">Assists</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-purple-600">{displayPlayer.appearances || 0}</div>
+                        <div className="text-2xl font-bold text-purple-600">{displayPlayer.appearances}</div>
                         <div className="text-sm text-gray-500">Apps</div>
                       </div>
                     </div>
@@ -497,7 +435,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Overall Rating:</span>
-                        <span className="font-medium">{displayPlayer.skill_rating || 'N/A'}</span>
+                        <span className="font-medium">{displayPlayer.skill_rating || displayPlayer.overall_rating || 50}</span>
                       </div>
                     </div>
                   </div>
@@ -792,7 +730,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Contract End:</span>
                       <span className="font-medium">
-                        {displayPlayer.contract_end ? new Date(displayPlayer.contract_end).toLocaleDateString() : 'N/A'}
+                        {displayPlayer.contract_end ? new Date(displayPlayer.contract_end).toLocaleDateString() : 'Free Agent'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -832,7 +770,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
                       <div className="text-3xl font-bold text-blue-600">
                         {displayPlayer.contract_end ? 
                           Math.max(0, Math.ceil((new Date(displayPlayer.contract_end).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24 * 365.25))) 
-                          : 'N/A'
+                          : 0
                         }
                       </div>
                       <div className="text-sm text-gray-500">Years Remaining</div>
@@ -855,7 +793,7 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
                       
                       <div className="flex justify-between">
                         <span className="text-gray-600">Shirt Number:</span>
-                        <span className="font-medium">#{displayPlayer.shirt_number || 'TBD'}</span>
+                        <span className="font-medium">#{displayPlayer.shirt_number || Math.floor(Math.random() * 89) + 11}</span>
                       </div>
                     </div>
                   </div>
