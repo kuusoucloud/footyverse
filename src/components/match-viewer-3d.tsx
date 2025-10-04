@@ -13,17 +13,17 @@ interface Player3DProps {
 }
 
 function Player3D({ player, color }: Player3DProps) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
 
   useEffect(() => {
-    if (meshRef.current) {
-      meshRef.current.position.set(player.pos[0], player.pos[2], player.pos[1]);
-      meshRef.current.rotation.y = player.facing;
+    if (groupRef.current) {
+      groupRef.current.position.set(player.pos[0], player.pos[2], player.pos[1]);
+      groupRef.current.rotation.y = player.facing;
     }
   }, [player.pos, player.facing]);
 
   return (
-    <group ref={meshRef}>
+    <group ref={groupRef}>
       <Box args={[1, 2, 0.5]} position={[0, 1, 0]}>
         <meshStandardMaterial color={color} />
       </Box>
