@@ -85,7 +85,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
           `).eq('status', 'live').limit(10),
           supabase.from('team_standings').select(`
             *,
-            team:team_id(name, tier, elo, primary_color, secondary_color, crest_url)
+            team:team_id(name, tier, elo, primary_color, secondary_color, crest_url, logo_url)
           `).order('points', { ascending: false }).limit(100),
           supabase.from('transfers').select(`
             *,
@@ -532,7 +532,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                             <tr 
                               key={team.id} 
                               className={`glass-row cursor-pointer transition-all duration-300 ${
-                                index < 2 ? 'bg-green-400/10 border-l-2 border-green-400' : 
+                                index < 3 ? 'bg-green-400/10 border-l-2 border-green-400' : 
                                 index >= standings.filter(t => t.team?.tier === selectedTier).length - 3 ? 'bg-red-400/10 border-l-2 border-red-400' : ''
                               }`}
                               onClick={() => onTeamSelect?.(team.team_id)}
@@ -541,7 +541,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                               <td className="p-3">
                                 <div className="flex items-center gap-2">
                                   <img 
-                                    src={team.team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${team.team?.name}`}
+                                    src={team.team?.tier === 1 ? team.team?.logo_url : team.team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${team.team?.name}`}
                                     alt={team.team?.name}
                                     className="w-6 h-6 rounded"
                                   />
