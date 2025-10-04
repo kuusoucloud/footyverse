@@ -35,7 +35,8 @@ interface AutomatedFootballAppProps {
 export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: (teamId: string) => void }) {
   const [stats, setStats] = useState<any>({});
   const [liveMatches, setLiveMatches] = useState<any[]>([]);
-  const [recentTransfers, setRecentTransfers] = useState<any[]>([]);
+  const [upcomingMatches, setUpcomingMatches] = useState<any[]>([]);
+  const [upcomingTransfers, setRecentTransfers] = useState<any[]>([]);
   const [orchestrationStatus, setOrchestrationStatus] = useState<any>({});
   const [standings, setStandings] = useState<any[]>([]);
   const [selectedTier, setSelectedTier] = useState(1);
@@ -73,7 +74,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
     const fetchData = async () => {
       try {
         // Get basic stats, standings, season progression, and global season info
-        const [teamsRes, playersRes, fixturesRes, standingsRes, transfersRes, seasonRes, globalSeasonRes, injuriesRes] = await Promise.all([
+        const [teamsRes, playersRes, fixturesRes, upcomingRes, standingsRes, transfersRes, seasonRes, globalSeasonRes, injuriesRes] = await Promise.all([
           supabase.from('teams').select('id'),
           supabase.from('players').select('id, injury_status'),
           supabase.from('fixtures').select(`
@@ -81,6 +82,11 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
             home_team:home_team_id(name, crest_url, primary_color),
             away_team:away_team_id(name, crest_url, primary_color)
           `).eq('status', 'live').limit(10),
+          supabase.from('fixtures').select(`
+            *,
+            home_team:home_team_id(name, crest_url, primary_color, tier),
+            away_team:away_team_id(name, crest_url, primary_color, tier)
+          `).eq('status', 'scheduled').order('scheduled_at', { ascending: true }).limit(20),
           supabase.from('team_standings').select(`
             *,
             team:team_id(name, tier, elo, primary_color, secondary_color, crest_url, logo_url)
@@ -120,6 +126,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
         });
 
         setLiveMatches(fixturesRes.data || []);
+        setUpcomingMatches(upcomingRes.data || []);
         
         // Filter out standings with null teams
         const validStandings = (standingsRes.data || []).filter(standing => 
@@ -438,75 +445,178 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
           </TabsContent>
           
           <TabsContent value="matches" className="mt-6">
-            <div className="glass-card p-6">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <Play className="h-5 w-5 text-green-400" />
-                  Live Matches
-                </h3>
-              </div>
-              {liveMatches.length === 0 ? (
-                <div className="text-center py-8">
-                  <Clock className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                  <p className="text-slate-400">No live matches at the moment</p>
-                  <p className="text-sm text-slate-500 mt-2">Check back soon for live action!</p>
+            <div className="space-y-6">
+              {/* Live Matches Section */}
+              <div className="glass-card p-6">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <Play className="h-5 w-5 text-green-400" />
+                    Live Matches
+                  </h3>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {liveMatches.map((match) => (
-                    <div 
-                      key={match.id} 
-                      className="glass-row p-4 rounded-lg cursor-pointer hover:bg-white/10 transition-all duration-300"
-                      onClick={() => {
-                        // Navigate to team details for home team (you can modify this logic)
-                        onTeamSelect?.(match.home_team_id);
-                      }}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-4">
-                          <div 
-                            className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onTeamSelect?.(match.home_team_id);
-                            }}
-                          >
-                            <img 
-                              src={match.home_team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.home_team?.name || 'team'}`}
-                              alt={match.home_team?.name || 'Team'}
-                              className="w-8 h-8 rounded"
-                            />
-                            <span className="font-medium text-white">{match.home_team?.name || 'Unknown Team'}</span>
+                {liveMatches.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Clock className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-400">No live matches at the moment</p>
+                    <p className="text-sm text-slate-500 mt-2">Check back soon for live action!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {liveMatches.map((match) => (
+                      <div 
+                        key={match.id} 
+                        className="glass-row p-4 rounded-lg cursor-pointer hover:bg-white/10 transition-all duration-300"
+                        onClick={() => {
+                          // Navigate to team details for home team (you can modify this logic)
+                          onTeamSelect?.(match.home_team_id);
+                        }}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-4">
+                            <div 
+                              className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onTeamSelect?.(match.home_team_id);
+                              }}
+                            >
+                              <img 
+                                src={match.home_team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.home_team?.name || 'team'}`}
+                                alt={match.home_team?.name || 'Team'}
+                                className="w-8 h-8 rounded"
+                              />
+                              <span className="font-medium text-white">{match.home_team?.name || 'Unknown Team'}</span>
+                            </div>
+                            <span className="text-slate-400">vs</span>
+                            <div 
+                              className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onTeamSelect?.(match.away_team_id);
+                              }}
+                            >
+                              <img 
+                                src={match.away_team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.away_team?.name || 'team'}`}
+                                alt={match.away_team?.name || 'Team'}
+                                className="w-8 h-8 rounded"
+                              />
+                              <span className="font-medium text-white">{match.away_team?.name || 'Unknown Team'}</span>
+                            </div>
                           </div>
-                          <span className="text-slate-400">vs</span>
-                          <div 
-                            className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onTeamSelect?.(match.away_team_id);
-                            }}
-                          >
-                            <img 
-                              src={match.away_team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.away_team?.name || 'team'}`}
-                              alt={match.away_team?.name || 'Team'}
-                              className="w-8 h-8 rounded"
-                            />
-                            <span className="font-medium text-white">{match.away_team?.name || 'Unknown Team'}</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-white">
-                            {match.home_score} - {match.away_score}
-                          </div>
-                          <div className="text-sm text-green-400">
-                            {match.minute}'
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-white">
+                              {match.home_score} - {match.away_score}
+                            </div>
+                            <div className="text-sm text-green-400">
+                              {match.minute}'
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Upcoming Matches Section */}
+              <div className="glass-card p-6">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-blue-400" />
+                    Upcoming Fixtures
+                  </h3>
+                </div>
+                
+                {/* Tier Filter */}
+                <div className="flex gap-2 mb-6">
+                  {[1, 2, 3, 4, 5].map((tier) => (
+                    <button
+                      key={tier}
+                      className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                        selectedTier === tier
+                          ? 'glass-primary text-white'
+                          : 'glass-button text-slate-300 hover:text-white'
+                      }`}
+                      onClick={() => setSelectedTier(tier)}
+                    >
+                      Tier {tier}
+                    </button>
                   ))}
                 </div>
-              )}
+
+                {upcomingMatches.filter(match => 
+                  match.home_team?.tier === selectedTier || match.away_team?.tier === selectedTier
+                ).length === 0 ? (
+                  <div className="text-center py-8">
+                    <Calendar className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-400">No upcoming fixtures for Tier {selectedTier}</p>
+                    <p className="text-sm text-slate-500 mt-2">Fixtures will be generated automatically</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {upcomingMatches
+                      .filter(match => 
+                        match.home_team?.tier === selectedTier || match.away_team?.tier === selectedTier
+                      )
+                      .map((match) => (
+                        <div 
+                          key={match.id} 
+                          className="glass-row p-4 rounded-lg cursor-pointer hover:bg-white/10 transition-all duration-300"
+                          onClick={() => {
+                            onTeamSelect?.(match.home_team_id);
+                          }}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-4">
+                              <div 
+                                className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onTeamSelect?.(match.home_team_id);
+                                }}
+                              >
+                                <img 
+                                  src={match.home_team?.tier === 1 ? match.home_team?.logo_url : match.home_team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.home_team?.name || 'team'}`}
+                                  alt={match.home_team?.name || 'Team'}
+                                  className="w-8 h-8 rounded"
+                                />
+                                <span className="font-medium text-white">{match.home_team?.name || 'Unknown Team'}</span>
+                              </div>
+                              <span className="text-slate-400">vs</span>
+                              <div 
+                                className="flex items-center gap-2 cursor-pointer hover:text-blue-400 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onTeamSelect?.(match.away_team_id);
+                                }}
+                              >
+                                <img 
+                                  src={match.away_team?.tier === 1 ? match.away_team?.logo_url : match.away_team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.away_team?.name || 'team'}`}
+                                  alt={match.away_team?.name || 'Team'}
+                                  className="w-8 h-8 rounded"
+                                />
+                                <span className="font-medium text-white">{match.away_team?.name || 'Unknown Team'}</span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm text-slate-400">
+                                Round {match.round}
+                              </div>
+                              <div className="text-sm text-blue-400">
+                                {new Date(match.scheduled_at).toLocaleDateString('en-GB', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
             </div>
           </TabsContent>
           
