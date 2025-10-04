@@ -1773,6 +1773,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      proper_team_spacing_sequencing: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       run_orchestrator_http: {
         Args: Record<PropertyKey, never>
         Returns: undefined
