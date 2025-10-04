@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useFootballStore, MatchState, PlayerState } from '@/lib/football-store';
 import { FootballAPI } from '@/lib/football-api';
 import * as THREE from 'three';
+import { matchOrchestrator, MatchResult } from '@/lib/match-orchestrator';
 
 interface Player3DProps {
   player: PlayerState;
@@ -109,6 +110,8 @@ interface MatchViewer3DProps {
 export default function MatchViewer3D({ fixtureId }: MatchViewer3DProps) {
   const { currentMatch, selectedFixture, setCurrentMatch } = useFootballStore();
   const [isConnected, setIsConnected] = useState(false);
+  const [matchCompleted, setMatchCompleted] = useState(false);
+  const [isProcessingCompletion, setIsProcessingCompletion] = useState(false);
 
   useEffect(() => {
     if (!fixtureId) return;
@@ -121,8 +124,12 @@ export default function MatchViewer3D({ fixtureId }: MatchViewer3DProps) {
       onMatchEvent: (event) => {
         console.log('Match event:', event);
       },
-      onMatchFinal: (result) => {
+      onMatchFinal: async (result) => {
         console.log('Match finished:', result);
+        setMatchCompleted(true);
+        
+        // Process match completion
+        await handleMatchCompletion(result);
       }
     });
 
@@ -133,6 +140,61 @@ export default function MatchViewer3D({ fixtureId }: MatchViewer3DProps) {
       setIsConnected(false);
     };
   }, [fixtureId, setCurrentMatch]);
+
+  const handleMatchCompletion = async (result: any) => {
+    if (isProcessingCompletion) return;
+    
+    setIsProcessingCompletion(true);
+    
+    try {
+      // Create match result object
+      const matchResult: MatchResult = {
+        homeScore: result.score[0],
+        awayScore: result.score[1],
+        matchEvents: result.events || [],
+        matchStats: {
+          homePossession: result.stats?.homePossession || 50,
+          awayPossession: result.stats?.awayPossession || 50,
+          homeShots: result.stats?.homeShots || 0,
+          awayShots: result.stats?.awayShots || 0,
+          homeShotsOnTarget: result.stats?.homeShotsOnTarget || 0,
+          awayShotsOnTarget: result.stats?.awayShotsOnTarget || 0,
+          homeCorners: result.stats?.homeCorners || 0,
+          awayCorners: result.stats?.awayCorners || 0,
+          homeFouls: result.stats?.homeFouls || 0,
+          awayFouls: result.stats?.awayFouls || 0,
+          homeYellowCards: result.stats?.homeYellowCards || 0,
+          awayYellowCards: result.stats?.awayYellowCards || 0,
+          homeRedCards: result.stats?.homeRedCards || 0,
+          awayRedCards: result.stats?.awayRedCards || 0,
+        },
+        playerPerformances: result.playerPerformances || [],
+        simulationDuration: result.duration || 0
+      };
+
+      // Complete the match and handle season progression
+      const completionResult = await matchOrchestrator.completeMatch(fixtureId, matchResult);
+      
+      if (completionResult.success) {
+        console.log('Match completed successfully');
+        
+        if (completionResult.seasonProgressed) {
+          console.log('🎉 New season started! Promotions and relegations processed.');
+        }
+        
+        // Wait a moment to show final score, then redirect
+        setTimeout(() => {
+          window.location.href = '/dashboard'; // or wherever you want to redirect
+        }, 5000);
+      } else {
+        console.error('Failed to complete match:', completionResult.error);
+      }
+    } catch (error) {
+      console.error('Error processing match completion:', error);
+    } finally {
+      setIsProcessingCompletion(false);
+    }
+  };
 
   if (!currentMatch) {
     return (
@@ -154,6 +216,32 @@ export default function MatchViewer3D({ fixtureId }: MatchViewer3DProps) {
   return (
     <div className="w-full h-screen bg-gray-900 relative">
       <MatchHUD matchState={currentMatch} />
+      
+      {/* Match Completion Overlay */}
+      {matchCompleted && (
+        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 text-center max-w-md">
+            <h2 className="text-2xl font-bold mb-4">Match Completed!</h2>
+            <div className="text-4xl font-bold mb-4">
+              {currentMatch.score[0]} - {currentMatch.score[1]}
+            </div>
+            <div className="text-gray-600 mb-4">
+              {selectedFixture?.home_team.name} vs {selectedFixture?.away_team.name}
+            </div>
+            
+            {isProcessingCompletion ? (
+              <div className="flex items-center justify-center space-x-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <span>Processing results...</span>
+              </div>
+            ) : (
+              <div className="text-green-600 font-semibold">
+                ✅ Results saved! Advancing to next match...
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       
       <Canvas
         camera={{ 
@@ -208,6 +296,11 @@ export default function MatchViewer3D({ fixtureId }: MatchViewer3DProps) {
         <p>Active Players: {currentMatch.players.length}</p>
         {currentMatch.active_event && (
           <p>Event: {currentMatch.active_event}</p>
+        )}
+        {matchCompleted && (
+          <div className="mt-2 text-green-400">
+            <p>✅ Match Completed</p>
+          </div>
         )}
       </div>
     </div>

@@ -226,6 +226,124 @@ export type Database = {
           },
         ]
       }
+      finished_matches: {
+        Row: {
+          away_corners: number | null
+          away_fouls: number | null
+          away_possession: number | null
+          away_red_cards: number | null
+          away_score: number
+          away_shots: number | null
+          away_shots_on_target: number | null
+          away_team_id: string | null
+          away_yellow_cards: number | null
+          created_at: string | null
+          fixture_id: string | null
+          home_corners: number | null
+          home_fouls: number | null
+          home_possession: number | null
+          home_red_cards: number | null
+          home_score: number
+          home_shots: number | null
+          home_shots_on_target: number | null
+          home_team_id: string | null
+          home_yellow_cards: number | null
+          id: string
+          match_date: string
+          match_events: Json | null
+          round: number | null
+          season_number: number
+          simulation_completed_at: string | null
+          simulation_duration: number | null
+          tier: number
+          updated_at: string | null
+        }
+        Insert: {
+          away_corners?: number | null
+          away_fouls?: number | null
+          away_possession?: number | null
+          away_red_cards?: number | null
+          away_score?: number
+          away_shots?: number | null
+          away_shots_on_target?: number | null
+          away_team_id?: string | null
+          away_yellow_cards?: number | null
+          created_at?: string | null
+          fixture_id?: string | null
+          home_corners?: number | null
+          home_fouls?: number | null
+          home_possession?: number | null
+          home_red_cards?: number | null
+          home_score?: number
+          home_shots?: number | null
+          home_shots_on_target?: number | null
+          home_team_id?: string | null
+          home_yellow_cards?: number | null
+          id?: string
+          match_date: string
+          match_events?: Json | null
+          round?: number | null
+          season_number: number
+          simulation_completed_at?: string | null
+          simulation_duration?: number | null
+          tier: number
+          updated_at?: string | null
+        }
+        Update: {
+          away_corners?: number | null
+          away_fouls?: number | null
+          away_possession?: number | null
+          away_red_cards?: number | null
+          away_score?: number
+          away_shots?: number | null
+          away_shots_on_target?: number | null
+          away_team_id?: string | null
+          away_yellow_cards?: number | null
+          created_at?: string | null
+          fixture_id?: string | null
+          home_corners?: number | null
+          home_fouls?: number | null
+          home_possession?: number | null
+          home_red_cards?: number | null
+          home_score?: number
+          home_shots?: number | null
+          home_shots_on_target?: number | null
+          home_team_id?: string | null
+          home_yellow_cards?: number | null
+          id?: string
+          match_date?: string
+          match_events?: Json | null
+          round?: number | null
+          season_number?: number
+          simulation_completed_at?: string | null
+          simulation_duration?: number | null
+          tier?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finished_matches_away_team_id_fkey"
+            columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finished_matches_fixture_id_fkey"
+            columns: ["fixture_id"]
+            isOneToOne: false
+            referencedRelation: "fixtures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finished_matches_home_team_id_fkey"
+            columns: ["home_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fixture_generation_log: {
         Row: {
           completed_at: string | null
@@ -578,6 +696,103 @@ export type Database = {
           },
           {
             foreignKeyName: "player_interests_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_match_performance: {
+        Row: {
+          assists: number | null
+          blocks: number | null
+          clearances: number | null
+          created_at: string | null
+          finished_match_id: string | null
+          fouls_committed: number | null
+          fouls_suffered: number | null
+          goals: number | null
+          id: string
+          interceptions: number | null
+          match_rating: number | null
+          minutes_played: number | null
+          pass_accuracy: number | null
+          passes_attempted: number | null
+          passes_completed: number | null
+          player_id: string | null
+          red_cards: number | null
+          shots: number | null
+          shots_on_target: number | null
+          tackles: number | null
+          team_id: string | null
+          yellow_cards: number | null
+        }
+        Insert: {
+          assists?: number | null
+          blocks?: number | null
+          clearances?: number | null
+          created_at?: string | null
+          finished_match_id?: string | null
+          fouls_committed?: number | null
+          fouls_suffered?: number | null
+          goals?: number | null
+          id?: string
+          interceptions?: number | null
+          match_rating?: number | null
+          minutes_played?: number | null
+          pass_accuracy?: number | null
+          passes_attempted?: number | null
+          passes_completed?: number | null
+          player_id?: string | null
+          red_cards?: number | null
+          shots?: number | null
+          shots_on_target?: number | null
+          tackles?: number | null
+          team_id?: string | null
+          yellow_cards?: number | null
+        }
+        Update: {
+          assists?: number | null
+          blocks?: number | null
+          clearances?: number | null
+          created_at?: string | null
+          finished_match_id?: string | null
+          fouls_committed?: number | null
+          fouls_suffered?: number | null
+          goals?: number | null
+          id?: string
+          interceptions?: number | null
+          match_rating?: number | null
+          minutes_played?: number | null
+          pass_accuracy?: number | null
+          passes_attempted?: number | null
+          passes_completed?: number | null
+          player_id?: string | null
+          red_cards?: number | null
+          shots?: number | null
+          shots_on_target?: number | null
+          tackles?: number | null
+          team_id?: string | null
+          yellow_cards?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_match_performance_finished_match_id_fkey"
+            columns: ["finished_match_id"]
+            isOneToOne: false
+            referencedRelation: "finished_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_match_performance_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_match_performance_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
@@ -1425,6 +1640,10 @@ export type Database = {
         Args: { player_age: number; player_attributes: Json; team_tier: number }
         Returns: number
       }
+      check_and_progress_season: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       check_global_season_completion: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -1443,6 +1662,10 @@ export type Database = {
       }
       generate_fixtures_for_new_season: {
         Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      generate_new_season_fixtures: {
+        Args: { new_season: number }
         Returns: undefined
       }
       generate_replacement_player: {
@@ -1506,6 +1729,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      process_completed_fixture: {
+        Args: { fixture_uuid: string }
+        Returns: boolean
+      }
       process_match_based_injury_recoveries: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -1518,6 +1745,10 @@ export type Database = {
         Args: { season_num: number }
         Returns: undefined
       }
+      process_promotions_relegations: {
+        Args: { completed_season: number }
+        Returns: undefined
+      }
       progress_global_season: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1527,6 +1758,10 @@ export type Database = {
         Returns: undefined
       }
       run_orchestrator_http: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      sequence_new_fixtures: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
