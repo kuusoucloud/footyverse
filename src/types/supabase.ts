@@ -616,6 +616,7 @@ export type Database = {
           created_at: string | null
           current_elo: number
           foot: string
+          form: number | null
           form_rating: number | null
           height_cm: number
           id: string
@@ -643,6 +644,7 @@ export type Database = {
           created_at?: string | null
           current_elo?: number
           foot?: string
+          form?: number | null
           form_rating?: number | null
           height_cm: number
           id?: string
@@ -670,6 +672,7 @@ export type Database = {
           created_at?: string | null
           current_elo?: number
           foot?: string
+          form?: number | null
           form_rating?: number | null
           height_cm?: number
           id?: string
