@@ -367,6 +367,32 @@ export default function AdminPanel() {
     }
   };
 
+  const generateInitialFixtures = async () => {
+    setLoading(true);
+    setStatus("🏆 Generating initial fixtures for the season...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "supabase-functions-match-orchestrator",
+        {
+          body: { 
+            action: "generate_initial_fixtures"
+          },
+        },
+      );
+
+      if (error) throw error;
+      setStatus(`✅ ${data.message} - ${data.data?.total_fixtures || 'All'} fixtures created for the season`);
+      checkSystemStatus();
+    } catch (error) {
+      setStatus(
+        `❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resetSystem = async () => {
     if (
       !confirm(
@@ -621,6 +647,20 @@ export default function AdminPanel() {
             System Controls
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <button
+              onClick={generateInitialFixtures}
+              disabled={loading}
+              className="glass-button p-4 rounded-lg text-left hover:glass-primary transition-all duration-300 disabled:opacity-50"
+            >
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-green-400" />
+                <div>
+                  <div className="font-medium text-white">Generate Season Fixtures</div>
+                  <div className="text-xs text-slate-400">Create complete season schedule (~1900 matches)</div>
+                </div>
+              </div>
+            </button>
+
             <button
               onClick={() => generateFixtures(false)}
               disabled={loading}
