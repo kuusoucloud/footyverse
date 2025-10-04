@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Play, Trophy, Calendar } from 'lucide-react';
+import { Clock, Play, Trophy, Calendar, TrendingUp } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
 interface Fixture {
@@ -15,6 +15,7 @@ interface Fixture {
     tier: number;
     logo_url?: string;
     crest_url?: string;
+    elo_rating?: number;
   };
   away_team: {
     id: string;
@@ -22,10 +23,16 @@ interface Fixture {
     tier: number;
     logo_url?: string;
     crest_url?: string;
+    elo_rating?: number;
   };
   scheduled_at: string;
   status: string;
   round?: number;
+  odds?: {
+    home: number;
+    away: number;
+    draw: number;
+  };
 }
 
 interface MatchCardProps {
@@ -92,11 +99,43 @@ function MatchCard({ fixture, onSelect, isLive = false }: MatchCardProps) {
           </div>
         </div>
         
+        {/* Betting Odds Section */}
+        {fixture.odds && !isLive && (
+          <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-1">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+                <span className="text-xs font-semibold text-green-700">BETTING ODDS</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="bg-white rounded px-2 py-1 border">
+                <div className="text-xs text-gray-500">Home</div>
+                <div className="font-bold text-sm text-green-600">{fixture.odds.home}</div>
+              </div>
+              <div className="bg-white rounded px-2 py-1 border">
+                <div className="text-xs text-gray-500">Draw</div>
+                <div className="font-bold text-sm text-gray-600">{fixture.odds.draw}</div>
+              </div>
+              <div className="bg-white rounded px-2 py-1 border">
+                <div className="text-xs text-gray-500">Away</div>
+                <div className="font-bold text-sm text-blue-600">{fixture.odds.away}</div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="flex justify-between items-center text-sm text-gray-600 mb-3">
           <div className="flex items-center space-x-1">
             <Clock className="w-4 h-4" />
             <span>{formatDate(fixture.scheduled_at)} {formatTime(fixture.scheduled_at)}</span>
           </div>
+          {/* Show ELO ratings if available */}
+          {fixture.home_team.elo_rating && fixture.away_team.elo_rating && (
+            <div className="text-xs text-gray-500">
+              ELO: {Math.round(fixture.home_team.elo_rating)} vs {Math.round(fixture.away_team.elo_rating)}
+            </div>
+          )}
         </div>
         
         {isLive && (
@@ -117,6 +156,33 @@ function MatchCard({ fixture, onSelect, isLive = false }: MatchCardProps) {
   );
 }
 
+// Calculate betting odds based on ELO ratings
+function calculateOdds(homeElo: number, awayElo: number): { home: number; away: number; draw: number } {
+  // ELO difference calculation
+  const eloDiff = homeElo - awayElo;
+  
+  // Convert ELO difference to win probability using standard ELO formula
+  const homeWinProb = 1 / (1 + Math.pow(10, -eloDiff / 400));
+  const awayWinProb = 1 - homeWinProb;
+  
+  // Adjust for draw probability (typically 25-30% in football)
+  const drawProb = 0.27; // 27% draw probability
+  const adjustedHomeWinProb = homeWinProb * (1 - drawProb);
+  const adjustedAwayWinProb = awayWinProb * (1 - drawProb);
+  
+  // Convert probabilities to decimal odds (with bookmaker margin)
+  const margin = 0.05; // 5% bookmaker margin
+  const homeOdds = (1 / adjustedHomeWinProb) * (1 + margin);
+  const awayOdds = (1 / adjustedAwayWinProb) * (1 + margin);
+  const drawOdds = (1 / drawProb) * (1 + margin);
+  
+  return {
+    home: Math.round(homeOdds * 100) / 100, // Round to 2 decimal places
+    away: Math.round(awayOdds * 100) / 100,
+    draw: Math.round(drawOdds * 100) / 100
+  };
+}
+
 interface MatchSelectionProps {
   onMatchSelect: (fixture: any) => void;
 }
@@ -135,36 +201,44 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
       setIsLoading(true);
       const supabase = createClient();
 
-      // Get all live matches
+      // Get all live matches with ELO ratings
       const { data: liveData } = await supabase
         .from('fixtures')
         .select(`
           *,
-          home_team:teams!fixtures_home_team_id_fkey(id, name, tier, logo_url, crest_url),
-          away_team:teams!fixtures_away_team_id_fkey(id, name, tier, logo_url, crest_url)
+          home_team:teams!fixtures_home_team_id_fkey(id, name, tier, logo_url, crest_url, elo_rating),
+          away_team:teams!fixtures_away_team_id_fkey(id, name, tier, logo_url, crest_url, elo_rating)
         `)
         .eq('status', 'live')
         .order('scheduled_at', { ascending: true });
 
-      // Get the next 20 upcoming matches
+      // Get the next 20 upcoming matches with ELO ratings
       const { data: upcomingData } = await supabase
         .from('fixtures')
         .select(`
           *,
-          home_team:teams!fixtures_home_team_id_fkey(id, name, tier, logo_url, crest_url),
-          away_team:teams!fixtures_away_team_id_fkey(id, name, tier, logo_url, crest_url)
+          home_team:teams!fixtures_home_team_id_fkey(id, name, tier, logo_url, crest_url, elo_rating),
+          away_team:teams!fixtures_away_team_id_fkey(id, name, tier, logo_url, crest_url, elo_rating)
         `)
         .eq('status', 'scheduled')
         .order('scheduled_at', { ascending: true })
         .limit(20);
 
-      // Filter out fixtures with null teams
+      // Filter out fixtures with null teams and calculate odds
       const validLiveMatches = (liveData || []).filter(fixture => 
         fixture.home_team && fixture.away_team
       );
-      const validUpcomingMatches = (upcomingData || []).filter(fixture => 
-        fixture.home_team && fixture.away_team
-      );
+      
+      const validUpcomingMatches = (upcomingData || [])
+        .filter(fixture => fixture.home_team && fixture.away_team)
+        .map(fixture => {
+          // Calculate odds if both teams have ELO ratings
+          if (fixture.home_team.elo_rating && fixture.away_team.elo_rating) {
+            const odds = calculateOdds(fixture.home_team.elo_rating, fixture.away_team.elo_rating);
+            return { ...fixture, odds };
+          }
+          return fixture;
+        });
 
       setLiveMatches(validLiveMatches);
       setUpcomingMatches(validUpcomingMatches);
@@ -239,7 +313,7 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
             <Calendar className="w-6 h-6 text-blue-400" />
             Upcoming Matches ({upcomingMatches.length})
             <span className="text-sm font-normal text-slate-400">
-              (Next 20 fixtures)
+              (Next 20 fixtures with live odds)
             </span>
           </h2>
           
@@ -287,15 +361,15 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
             </div>
             <div className="bg-slate-700 rounded-lg p-3">
               <div className="text-2xl font-bold text-green-400">
-                {new Set([...liveMatches, ...upcomingMatches].map(f => f.home_team?.tier)).size}
+                {upcomingMatches.filter(f => f.odds).length}
               </div>
-              <div className="text-xs text-slate-400">Active Tiers</div>
+              <div className="text-xs text-slate-400">With Odds</div>
             </div>
             <div className="bg-slate-700 rounded-lg p-3">
               <div className="text-2xl font-bold text-yellow-400">
-                {liveMatches.length + upcomingMatches.length}
+                {new Set([...liveMatches, ...upcomingMatches].map(f => f.home_team?.tier)).size}
               </div>
-              <div className="text-xs text-slate-400">Total Fixtures</div>
+              <div className="text-xs text-slate-400">Active Tiers</div>
             </div>
           </div>
         </div>
