@@ -13,7 +13,11 @@ import {
   Clock, 
   DollarSign,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Crown,
+  ArrowUp,
+  ArrowDown,
+  Target
 } from 'lucide-react';
 
 const supabase = createClient(
