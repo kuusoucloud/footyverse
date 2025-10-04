@@ -219,7 +219,7 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
         console.error('Live matches error:', liveError);
       }
 
-      // Get the next 20 upcoming matches with ELO ratings
+      // Get the next matches from each tier (4 from each tier = 20 total)
       const { data: upcomingData, error: upcomingError } = await supabase
         .from('fixtures')
         .select(`
@@ -229,7 +229,7 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
         `)
         .eq('status', 'scheduled')
         .order('scheduled_at', { ascending: true })
-        .limit(20);
+        .limit(50); // Get more matches to ensure we have variety from all tiers
 
       if (upcomingError) {
         console.error('Upcoming matches error:', upcomingError);
@@ -254,13 +254,41 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
           return { ...fixture, odds };
         });
 
-      console.log('Valid live matches:', validLiveMatches.length);
-      console.log('Valid upcoming matches:', validUpcomingMatches.length);
+      // Get balanced representation from all tiers (4 matches from each tier)
+      const balancedUpcomingMatches: Fixture[] = [];
+      const matchesByTier: { [key: number]: Fixture[] } = {};
+      
+      // Group matches by tier
+      validUpcomingMatches.forEach(match => {
+        const tier = match.home_team.tier;
+        if (!matchesByTier[tier]) {
+          matchesByTier[tier] = [];
+        }
+        matchesByTier[tier].push(match);
+      });
+      
+      // Take up to 4 matches from each tier
+      for (let tier = 1; tier <= 5; tier++) {
+        const tierMatches = matchesByTier[tier] || [];
+        balancedUpcomingMatches.push(...tierMatches.slice(0, 4));
+      }
+      
+      // If we don't have enough balanced matches, fill with remaining matches
+      if (balancedUpcomingMatches.length < 20) {
+        const remainingMatches = validUpcomingMatches.filter(match => 
+          !balancedUpcomingMatches.some(balanced => balanced.id === match.id)
+        );
+        balancedUpcomingMatches.push(...remainingMatches.slice(0, 20 - balancedUpcomingMatches.length));
+      }
 
-      setDebugInfo(`Live: ${validLiveMatches.length}, Upcoming: ${validUpcomingMatches.length}, Total fixtures: ${(liveData?.length || 0) + (upcomingData?.length || 0)}`);
+      console.log('Valid live matches:', validLiveMatches.length);
+      console.log('Valid upcoming matches:', balancedUpcomingMatches.length);
+      console.log('Matches by tier:', Object.keys(matchesByTier).map(tier => `T${tier}: ${matchesByTier[parseInt(tier)].length}`).join(', '));
+
+      setDebugInfo(`Live: ${validLiveMatches.length}, Upcoming: ${balancedUpcomingMatches.length} (balanced from ${validUpcomingMatches.length} total), Tiers: ${Object.keys(matchesByTier).join(',')}`);
       
       setLiveMatches(validLiveMatches);
-      setUpcomingMatches(validUpcomingMatches);
+      setUpcomingMatches(balancedUpcomingMatches);
       setIsLoading(false);
     } catch (error) {
       console.error('Failed to load matches:', error);
