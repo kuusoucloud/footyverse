@@ -1632,6 +1632,10 @@ export type Database = {
         Args: { force_regenerate?: boolean }
         Returns: string
       }
+      advanced_team_rotation_sequencing: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       apply_match_injury: {
         Args: { injury_severity?: string; match_id: string; player_id: string }
         Returns: string
@@ -1768,6 +1772,10 @@ export type Database = {
       should_run_orchestration: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      simple_tier_rotation_sequencing: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       start_continuous_matches: {
         Args: Record<PropertyKey, never>
