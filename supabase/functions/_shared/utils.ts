@@ -1,4 +1,4 @@
-import { Team, Player, Odds } from './types';
+import { Team, Player, Odds } from './types.ts';
 
 // Seeded random number generator
 class SeededRandom {

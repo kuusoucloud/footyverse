@@ -1,4 +1,4 @@
-import { MatchState, PlayerState, MatchEvent, Player } from './types';
+import { MatchState, PlayerState, MatchEvent, Player } from './types.ts';
 
 export class MatchSimulator {
   private homeTeam: Player[];

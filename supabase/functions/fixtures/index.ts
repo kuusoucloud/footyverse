@@ -2,30 +2,28 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, createResponse, createErrorResponse } from "@shared/cors.ts";
 import { calculateOdds } from "@shared/utils.ts";
 
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_KEY')!;
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const url = new URL(req.url);
-    const action = url.searchParams.get('action');
-
     if (req.method === 'GET') {
+      // Get fixtures with optional status filter
+      const url = new URL(req.url);
       const status = url.searchParams.get('status');
-      const league_id = url.searchParams.get('league_id');
-
+      
       let query = supabase
         .from('fixtures')
         .select(`
           *,
-          home_team:teams!fixtures_home_team_id_fkey(id, name, primary_color, secondary_color, elo),
-          away_team:teams!fixtures_away_team_id_fkey(id, name, primary_color, secondary_color, elo),
-          league:leagues(id, name, tier)
+          home_team:teams!fixtures_home_team_id_fkey(*),
+          away_team:teams!fixtures_away_team_id_fkey(*),
+          league:leagues(*)
         `)
         .order('scheduled_at', { ascending: true });
 
@@ -33,111 +31,115 @@ Deno.serve(async (req) => {
         query = query.eq('status', status);
       }
 
-      if (league_id) {
-        query = query.eq('league_id', league_id);
+      // Special handling for live matches - only return 1
+      if (status === 'live') {
+        query = query.limit(1);
       }
 
-      const { data: fixtures, error } = await query.limit(50);
+      const { data: fixtures, error } = await query;
 
-      if (error) {
-        throw new Error(`Failed to fetch fixtures: ${error.message}`);
-      }
+      if (error) throw error;
 
       // Add odds to each fixture
-      const fixturesWithOdds = fixtures?.map(fixture => {
-        const odds = calculateOdds(
-          fixture.home_team.elo,
-          fixture.away_team.elo
-        );
-        return { ...fixture, odds };
-      });
+      const fixturesWithOdds = fixtures?.map(fixture => ({
+        ...fixture,
+        odds: calculateOdds(fixture.home_team.elo, fixture.away_team.elo)
+      })) || [];
 
-      return createResponse(fixturesWithOdds || []);
+      return createResponse(fixturesWithOdds);
     }
 
-    if (req.method === 'POST' && action === 'generate') {
-      const league_id = url.searchParams.get('league_id');
+    if (req.method === 'POST') {
+      const body = await req.json();
       
-      if (!league_id) {
-        return createErrorResponse('league_id is required');
-      }
+      if (body.action === 'generate') {
+        // Generate fixtures for a league
+        const { league_id } = body;
+        
+        // Get teams in the league
+        const { data: teams, error: teamsError } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('league_id', league_id);
 
-      // Get league and teams
-      const { data: league } = await supabase
-        .from('leagues')
-        .select('*')
-        .eq('id', league_id)
-        .single();
+        if (teamsError) throw teamsError;
+        if (!teams || teams.length < 2) {
+          throw new Error('Not enough teams in league');
+        }
 
-      if (!league) {
-        return createErrorResponse('League not found');
-      }
-
-      const { data: teams } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('tier', league.tier);
-
-      if (!teams || teams.length === 0) {
-        return createErrorResponse('No teams found for this league');
-      }
-
-      // Generate double round-robin fixtures
-      const fixtures = [];
-      const now = new Date();
-      let matchDay = 0;
-
-      // Home and away fixtures
-      for (let round = 0; round < 2; round++) {
+        // Generate round-robin fixtures
+        const fixtures = [];
+        const now = new Date();
+        
         for (let i = 0; i < teams.length; i++) {
           for (let j = i + 1; j < teams.length; j++) {
-            const homeTeam = round === 0 ? teams[i] : teams[j];
-            const awayTeam = round === 0 ? teams[j] : teams[i];
+            const homeTeam = teams[i];
+            const awayTeam = teams[j];
             
-            const scheduledAt = new Date(now);
-            scheduledAt.setDate(now.getDate() + matchDay);
-            scheduledAt.setHours(15, 0, 0, 0); // 3 PM kickoff
-
+            // Schedule match for next available slot
+            const scheduledAt = new Date(now.getTime() + fixtures.length * 2 * 60 * 60 * 1000); // 2 hours apart
+            
             fixtures.push({
-              season_id: league.season_id,
-              league_id: league.id,
-              round: Math.floor(matchDay / (teams.length / 2)) + 1,
+              league_id,
+              season_id: '2024',
+              round: Math.floor(fixtures.length / (teams.length / 2)) + 1,
               home_team_id: homeTeam.id,
               away_team_id: awayTeam.id,
               scheduled_at: scheduledAt.toISOString(),
-              match_channel: `match_${crypto.randomUUID()}`
+              status: 'scheduled'
             });
-
-            matchDay++;
           }
         }
-      }
 
-      // Insert fixtures in batches
-      const batchSize = 50;
-      let insertedCount = 0;
-
-      for (let i = 0; i < fixtures.length; i += batchSize) {
-        const batch = fixtures.slice(i, i + batchSize);
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('fixtures')
-          .insert(batch);
+          .insert(fixtures)
+          .select();
 
-        if (error) {
-          throw new Error(`Failed to insert fixtures: ${error.message}`);
-        }
-
-        insertedCount += batch.length;
+        if (error) throw error;
+        return createResponse(data);
       }
 
-      return createResponse({
-        message: `Generated ${insertedCount} fixtures for league ${league.name}`,
-        fixtures: insertedCount
-      });
+      if (body.action === 'start_live_match') {
+        // Ensure only 1 live match at a time
+        await supabase
+          .from('fixtures')
+          .update({ status: 'finished' })
+          .eq('status', 'live');
+
+        // Start a new live match
+        const { data: scheduledFixtures } = await supabase
+          .from('fixtures')
+          .select('*')
+          .eq('status', 'scheduled')
+          .order('scheduled_at', { ascending: true })
+          .limit(1);
+
+        if (scheduledFixtures && scheduledFixtures.length > 0) {
+          const fixture = scheduledFixtures[0];
+          
+          const { data, error } = await supabase
+            .from('fixtures')
+            .update({ 
+              status: 'live',
+              match_channel: `match_${fixture.id}`
+            })
+            .eq('id', fixture.id)
+            .select();
+
+          if (error) throw error;
+          
+          // Start the match simulation
+          await supabase.functions.invoke('supabase-functions-simulate-match', {
+            body: { fixture_id: fixture.id }
+          });
+
+          return createResponse(data);
+        }
+      }
     }
 
-    return createErrorResponse('Invalid request', 400);
-
+    return createErrorResponse('Method not allowed', 405);
   } catch (error) {
     console.error('Fixtures error:', error);
     return createErrorResponse(error.message, 500);
