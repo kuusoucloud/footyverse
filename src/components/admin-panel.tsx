@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/utils/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Shield, Activity, Play, Users, Settings, Calendar, DollarSign, Trophy, Heart, TrendingUp, Database, Clock } from "lucide-react";
 
 export default function AdminPanel() {
   const [loading, setLoading] = useState(false);
@@ -30,6 +31,7 @@ export default function AdminPanel() {
   const [message, setMessage] = useState("");
   const [transferActivity, setTransferActivity] = useState<any[]>([]);
   const [wealthStats, setWealthStats] = useState<any>({});
+  const [actionLog, setActionLog] = useState<any[]>([]);
   const supabase = createClient();
 
   const fetchStats = async () => {
@@ -489,533 +491,208 @@ export default function AdminPanel() {
     }
   };
 
+  const handleAction = async (action: string) => {
+    setLoading(true);
+    setStatus(`⚙️ Executing ${action}...`);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('supabase-functions-football-ecosystem', {
+        body: { action }
+      });
+
+      if (error) throw error;
+
+      const actionDetails = {
+        action,
+        details: data.message || 'System action completed',
+        timestamp: new Date().toISOString()
+      };
+
+      setActionLog(prev => [actionDetails, ...prev.slice(0, 9)]);
+      setStatus(`✅ ${actionDetails.details}`);
+    } catch (error) {
+      setStatus(`❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">FootyVerse Admin Panel</h1>
-          <p className="text-gray-600">Complete Football Ecosystem Management</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+            <Shield className="text-red-400" />
+            Admin Control Panel
+          </h1>
+          <p className="text-slate-300 mt-2">
+            Manage the autonomous football ecosystem
+          </p>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-lg font-semibold text-gray-700">Teams</h3>
-            <p className="text-2xl font-bold text-blue-600">{stats.teams}</p>
-            <p className="text-sm text-gray-500">Across 5 tiers</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-lg font-semibold text-gray-700">Players</h3>
-            <p className="text-2xl font-bold text-green-600">{stats.players}</p>
-            <p className="text-sm text-gray-500">Active players</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-lg font-semibold text-gray-700">Fixtures</h3>
-            <p className="text-2xl font-bold text-purple-600">{stats.fixtures}</p>
-            <p className="text-sm text-gray-500">League & cup matches</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="text-lg font-semibold text-gray-700">Live Matches</h3>
-            <p className="text-2xl font-bold text-red-600">{stats.liveMatches}</p>
-            <p className="text-sm text-gray-500">Currently playing</p>
-          </div>
-        </div>
-
-        {/* Wealth Distribution Panel */}
-        {Object.keys(wealthStats).length > 0 && (
-          <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">💰 Wealth Distribution</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(wealthStats).map(([category, data]: [string, any]) => (
-                <div key={category} className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-700 capitalize">
-                      {category.replace('_', ' ')}
-                      <span className="ml-2">
-                        {category === 'mega_rich' ? '🏆' : 
-                         category === 'rich' ? '💎' : 
-                         category === 'moderate' ? '⚽' : 
-                         category === 'limited' ? '📊' : 
-                         category === 'poor' ? '💸' : 
-                         category === 'very_poor' ? '🏚️' : '❓'}
-                      </span>
-                    </h3>
-                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                      {data.count} teams
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-gray-600">
-                      Avg Budget: <span className="font-semibold text-green-600">
-                        £{(data.avgBudget / 1000000).toFixed(1)}M
-                      </span>
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Total: £{(data.totalBudget / 1000000).toFixed(0)}M
-                    </p>
-                  </div>
-                </div>
-              ))}
+        {/* System Status */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="glass-card p-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-slate-300">System Status</h3>
+              <Activity className="h-4 w-4 text-slate-400" />
             </div>
-            
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-              <h4 className="font-semibold text-blue-800 mb-2">💡 Wealth Impact on Transfers</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-700">
+            <div className="text-2xl font-bold text-green-400">Online</div>
+            <p className="text-xs text-slate-400">All systems operational</p>
+          </div>
+
+          <div className="glass-card p-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-slate-300">Active Matches</h3>
+              <Play className="h-4 w-4 text-slate-400" />
+            </div>
+            <div className="text-2xl font-bold text-white">{stats.activeMatches}</div>
+            <p className="text-xs text-slate-400">Currently simulating</p>
+          </div>
+
+          <div className="glass-card p-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-slate-300">Total Teams</h3>
+              <Users className="h-4 w-4 text-slate-400" />
+            </div>
+            <div className="text-2xl font-bold text-white">{stats.totalTeams}</div>
+            <p className="text-xs text-slate-400">Across all tiers</p>
+          </div>
+        </div>
+
+        {/* Control Actions */}
+        <div className="glass-card p-6 mb-8">
+          <h2 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+            <Settings className="h-5 w-5 text-blue-400" />
+            System Controls
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <button
+              onClick={() => handleAction('force_match_generation')}
+              disabled={loading}
+              className="glass-button p-4 rounded-lg text-left hover:glass-primary transition-all duration-300 disabled:opacity-50"
+            >
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-green-400" />
                 <div>
-                  <p><strong>Mega Rich Teams:</strong> Can spend 40% of budget on one player, attract top talent</p>
-                  <p><strong>Rich Teams:</strong> Spend up to 30% per player, good youth academies</p>
-                  <p><strong>Moderate Teams:</strong> 25% spending limit, balanced approach</p>
+                  <div className="font-medium text-white">Generate Matches</div>
+                  <div className="text-xs text-slate-400">Force fixture creation</div>
                 </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleAction('simulate_transfers')}
+              disabled={loading}
+              className="glass-button p-4 rounded-lg text-left hover:glass-primary transition-all duration-300 disabled:opacity-50"
+            >
+              <div className="flex items-center gap-3">
+                <DollarSign className="h-5 w-5 text-yellow-400" />
                 <div>
-                  <p><strong>Limited Budget:</strong> 20% per player, focus on value</p>
-                  <p><strong>Poor Teams:</strong> 15% limit, sell to survive, fewer youth graduates</p>
-                  <p><strong>Very Poor:</strong> Forced sales, minimal transfer activity</p>
+                  <div className="font-medium text-white">Simulate Transfers</div>
+                  <div className="text-xs text-slate-400">Run transfer market</div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+            </button>
 
-        {/* Main Actions */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Football Ecosystem Management</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Button 
-              onClick={setupCompleteEcosystem}
+            <button
+              onClick={() => handleAction('progress_season')}
               disabled={loading}
-              className="h-20 text-lg"
-              variant="default"
+              className="glass-button p-4 rounded-lg text-left hover:glass-primary transition-all duration-300 disabled:opacity-50"
             >
-              🏗️ Setup Complete Ecosystem
-              <div className="text-sm font-normal mt-1">
-                100 teams, 2300 players, fixtures & cup
+              <div className="flex items-center gap-3">
+                <Trophy className="h-5 w-5 text-purple-400" />
+                <div>
+                  <div className="font-medium text-white">Progress Season</div>
+                  <div className="text-xs text-slate-400">Advance to next season</div>
+                </div>
               </div>
-            </Button>
-            
-            <Button 
-              onClick={simulateMatches}
+            </button>
+
+            <button
+              onClick={() => handleAction('reset_injuries')}
               disabled={loading}
-              className="h-20 text-lg"
-              variant="secondary"
+              className="glass-button p-4 rounded-lg text-left hover:glass-primary transition-all duration-300 disabled:opacity-50"
             >
-              ⚽ Simulate Matches
-              <div className="text-sm font-normal mt-1">
-                Process scheduled fixtures
+              <div className="flex items-center gap-3">
+                <Heart className="h-5 w-5 text-red-400" />
+                <div>
+                  <div className="font-medium text-white">Reset Injuries</div>
+                  <div className="text-xs text-slate-400">Heal all players</div>
+                </div>
               </div>
-            </Button>
-            
-            <Button 
-              onClick={progressSeason}
+            </button>
+
+            <button
+              onClick={() => handleAction('update_ratings')}
               disabled={loading}
-              className="h-20 text-lg"
-              variant="outline"
+              className="glass-button p-4 rounded-lg text-left hover:glass-primary transition-all duration-300 disabled:opacity-50"
             >
-              📅 Progress Season
-              <div className="text-sm font-normal mt-1">
-                Age players, injuries, retirements
-              </div>
-            </Button>
-          </div>
-
-          {/* Transfer System Controls */}
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold text-gray-700 mb-4">🔄 Transfer System</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              <Button 
-                onClick={() => simulateTransfers('summer')}
-                disabled={loading}
-                className="h-16"
-                variant="default"
-              >
-                🌞 Summer Transfers
-                <div className="text-xs font-normal mt-1">
-                  Major transfer activity
-                </div>
-              </Button>
-              
-              <Button 
-                onClick={() => simulateTransfers('winter')}
-                disabled={loading}
-                className="h-16"
-                variant="secondary"
-              >
-                ❄️ Winter Transfers
-                <div className="text-xs font-normal mt-1">
-                  Mid-season moves
-                </div>
-              </Button>
-              
-              <Button 
-                onClick={() => openTransferWindow('summer')}
-                disabled={loading}
-                className="h-16"
-                variant="outline"
-              >
-                📅 Open Summer Window
-                <div className="text-xs font-normal mt-1">
-                  Activate summer market
-                </div>
-              </Button>
-              
-              <Button 
-                onClick={getTransferActivity}
-                disabled={loading}
-                className="h-16"
-                variant="ghost"
-              >
-                📊 View Activity
-                <div className="text-xs font-normal mt-1">
-                  Recent transfers
-                </div>
-              </Button>
-            </div>
-          </div>
-
-          {/* 24/7 Match Orchestrator Status */}
-          <Card className="mb-8 border-red-200">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <span>🚀 24/7 Match Orchestrator</span>
-                <Badge
-                  variant={
-                    orchestratorStatus.running ? "destructive" : "secondary"
-                  }
-                >
-                  {orchestratorStatus.running ? "RUNNING" : "STOPPED"}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">
-                    {orchestratorStatus.running ? "🔴 LIVE" : "⚫ OFF"}
-                  </div>
-                  <div className="text-sm text-gray-600">Status</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {orchestratorStatus.activeMatches}
-                  </div>
-                  <div className="text-sm text-gray-600">Active Matches</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm font-mono text-gray-600">
-                    {orchestratorStatus.lastCheck}
-                  </div>
-                  <div className="text-sm text-gray-600">Last Check</div>
+              <div className="flex items-center gap-3">
+                <TrendingUp className="h-5 w-5 text-blue-400" />
+                <div>
+                  <div className="font-medium text-white">Update Ratings</div>
+                  <div className="text-xs text-slate-400">Recalculate ELO</div>
                 </div>
               </div>
+            </button>
 
-              <div className="flex space-x-2">
-                <Button
-                  onClick={startOrchestrator}
-                  disabled={loading || autoSeeding || orchestratorStatus.running}
-                  variant="destructive"
-                  size="sm"
-                >
-                  🚀 Start 24/7 Matches
-                </Button>
-                <Button
-                  onClick={stopOrchestrator}
-                  disabled={loading || autoSeeding || !orchestratorStatus.running}
-                  variant="outline"
-                  size="sm"
-                >
-                  ⏹️ Stop Orchestrator
-                </Button>
-                <Button
-                  onClick={forceNextMatch}
-                  disabled={loading || autoSeeding || !orchestratorStatus.running}
-                  variant="secondary"
-                  size="sm"
-                >
-                  ⚡ Force Next Match
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* System Status */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>📊 System Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {systemStatus.teams}
-                  </div>
-                  <div className="text-sm text-gray-600">Teams</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {systemStatus.players}
-                  </div>
-                  <div className="text-sm text-gray-600">Players</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {systemStatus.fixtures}
-                  </div>
-                  <div className="text-sm text-gray-600">Fixtures</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">
-                    {systemStatus.liveMatches}
-                  </div>
-                  <div className="text-sm text-gray-600">Live Matches</div>
+            <button
+              onClick={() => handleAction('backup_data')}
+              disabled={loading}
+              className="glass-button p-4 rounded-lg text-left hover:glass-primary transition-all duration-300 disabled:opacity-50"
+            >
+              <div className="flex items-center gap-3">
+                <Database className="h-5 w-5 text-indigo-400" />
+                <div>
+                  <div className="font-medium text-white">Backup Data</div>
+                  <div className="text-xs text-slate-400">Create system backup</div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Seed Data</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-gray-600 mb-4">
-                  Generate 100 teams with players
-                </p>
-                <Button
-                  onClick={seedData}
-                  disabled={loading || autoSeeding}
-                  className="w-full"
-                  size="sm"
-                >
-                  Seed Teams & Players
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Generate Fixtures</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-gray-600 mb-4">
-                  Create league fixtures with odds
-                </p>
-                <Button
-                  onClick={generateFixtures}
-                  disabled={loading || autoSeeding}
-                  className="w-full"
-                  size="sm"
-                >
-                  Generate Fixtures
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Force Next Match</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-gray-600 mb-4">
-                  Manually trigger next match
-                </p>
-                <Button
-                  onClick={forceNextMatch}
-                  disabled={loading || autoSeeding}
-                  className="w-full"
-                  variant="destructive"
-                  size="sm"
-                >
-                  ⚡ Force Match
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Reset System</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-gray-600 mb-4">
-                  Delete all data & stop matches
-                </p>
-                <Button
-                  onClick={resetSystem}
-                  disabled={loading || autoSeeding}
-                  className="w-full"
-                  variant="outline"
-                  size="sm"
-                >
-                  Reset All
-                </Button>
-              </CardContent>
-            </Card>
+            </button>
           </div>
         </div>
 
-        {/* Transfer Activity Panel */}
-        {transferActivity.length > 0 && (
-          <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">📈 Recent Transfer Activity</h2>
-            
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {transferActivity.map((activity, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <span className="text-2xl">
-                      {activity.type === 'completed' ? '✅' : 
-                       activity.type === 'pending_bid' ? '⏳' : 
-                       activity.type === 'youth_promotion' ? '🌟' : '⚽'}
-                    </span>
+        {/* Recent Actions Log */}
+        <div className="glass-card p-6">
+          <h2 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+            <Clock className="h-5 w-5 text-green-400" />
+            Recent Actions
+          </h2>
+          <div className="space-y-3">
+            {actionLog.length === 0 ? (
+              <div className="text-center py-8">
+                <Clock className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-400">No recent actions</p>
+              </div>
+            ) : (
+              actionLog.map((action, index) => (
+                <div key={index} className="glass-row p-3 rounded-lg">
+                  <div className="flex justify-between items-center">
                     <div>
-                      <p className="font-semibold text-gray-800">
-                        {activity.player}
-                        {activity.position && (
-                          <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                            {activity.position}
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {activity.type === 'completed' && `${activity.from} → ${activity.to}`}
-                        {activity.type === 'pending_bid' && `${activity.to} bidding for ${activity.from} player`}
-                        {activity.type === 'youth_promotion' && `${activity.team} promoted from academy`}
-                        {activity.type === 'bid' && `${activity.bidding_team} bid for ${activity.selling_team} player`}
-                      </p>
+                      <div className="font-medium text-white">{action.action}</div>
+                      <div className="text-sm text-slate-400">{action.details}</div>
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      {new Date(action.timestamp).toLocaleString()}
                     </div>
                   </div>
-                  <div className="text-right">
-                    {(activity.fee || activity.amount) && (
-                      <p className="font-bold text-green-600">
-                        £{((activity.fee || activity.amount) / 1000000).toFixed(1)}M
-                      </p>
-                    )}
-                    {activity.wage && (
-                      <p className="text-xs text-gray-500">
-                        £{(activity.wage / 1000).toFixed(0)}k/week
-                      </p>
-                    )}
-                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Enhanced System Features */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Ecosystem Features</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div>
-              <h3 className="font-semibold text-gray-700 mb-2">🏆 League System</h3>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>• 5-tier league system (100 teams total)</li>
-                <li>• 38 matches per team per season</li>
-                <li>• Automatic promotion/relegation</li>
-                <li>• ELO-based team ratings</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold text-gray-700 mb-2">🏆 Cup Competition</h3>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>• FA Cup style knockout tournament</li>
-                <li>• All teams participate</li>
-                <li>• Single elimination format</li>
-                <li>• Runs parallel to league</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold text-gray-700 mb-2">👥 Player System</h3>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>• 23 players per team (2300 total)</li>
-                <li>• Age progression each season</li>
-                <li>• Injuries and recovery system</li>
-                <li>• Retirement at 35+ years</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold text-gray-700 mb-2">💰 Wealth System</h3>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>• Tier-based wealth distribution</li>
-                <li>• Mega rich to very poor teams</li>
-                <li>• Realistic wage structures</li>
-                <li>• Financial constraints on transfers</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold text-gray-700 mb-2">🔄 Transfer System</h3>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>• Summer & winter transfer windows</li>
-                <li>• Wealth-based bid mechanics</li>
-                <li>• Market values by tier & ability</li>
-                <li>• Youth academy quality by wealth</li>
-                <li>• Financial pressure sales</li>
-                <li>• Prestige-based player movement</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold text-gray-700 mb-2">📊 Advanced Features</h3>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>• Contract negotiations & wages</li>
-                <li>• Transfer budgets & limits</li>
-                <li>• Injury tracking & recovery</li>
-                <li>• Season progression automation</li>
-              </ul>
-            </div>
+              ))
+            )}
           </div>
         </div>
 
-        {message && (
-          <Card>
-            <CardContent className="p-6">
-              <div className="font-mono text-sm whitespace-pre-wrap">
-                {message}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>🚀 24/7 Football Universe Features</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-sm">
-              <p>
-                <strong>⚽ Continuous Matches:</strong> Always one match running
-                24/7
-              </p>
-              <p>
-                <strong>🎲 Dynamic Odds:</strong> ELO-based betting odds for
-                every match
-              </p>
-              <p>
-                <strong>🏆 Auto-Fixtures:</strong> Generates new rounds
-                automatically
-              </p>
-              <p>
-                <strong>📊 Live Statistics:</strong> Real-time match data and
-                standings
-              </p>
-              <p>
-                <strong>🤖 Smart Orchestration:</strong> Seamless match
-                transitions
-              </p>
-              <p>
-                <strong>🔄 Auto-Recovery:</strong> Restarts matches if system
-                fails
-              </p>
+        {/* Loading Overlay */}
+        {loading && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="glass-card p-8 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+              <p className="text-white font-medium">Processing...</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        )}
       </div>
     </div>
   );

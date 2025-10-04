@@ -26,7 +26,10 @@ import {
   MapPin,
   Shirt,
   BarChart3,
-  History
+  History,
+  Banknote,
+  FileText,
+  AlertTriangle
 } from 'lucide-react';
 
 const supabase = createClient();
@@ -36,7 +39,7 @@ interface PlayerDetailsProps {
   onBack: () => void;
 }
 
-export default function PlayerDetails({ playerId = "sample-player-id", onBack = () => {} }: PlayerDetailsProps) {
+export default function PlayerDetails({ playerId, onBack }: PlayerDetailsProps) {
   const [player, setPlayer] = useState<any>(null);
   const [currentTeam, setCurrentTeam] = useState<any>(null);
   const [playerHistory, setPlayerHistory] = useState<any[]>([]);
@@ -197,14 +200,17 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="h-64 bg-gray-200 rounded"></div>
-              <div className="h-64 bg-gray-200 rounded"></div>
-              <div className="h-64 bg-gray-200 rounded"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="glass-card p-8">
+            <div className="animate-pulse space-y-4">
+              <div className="h-8 bg-slate-700 rounded w-1/3"></div>
+              <div className="h-4 bg-slate-700 rounded w-1/2"></div>
+              <div className="grid grid-cols-4 gap-4 mt-8">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-24 bg-slate-700 rounded"></div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -214,13 +220,14 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
 
   if (!player) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Player not found</h1>
-          <Button onClick={onBack}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Players
-          </Button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="glass-card p-8">
+            <div className="text-center">
+              <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+              <p className="text-slate-400">Player not found</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -229,583 +236,170 @@ export default function PlayerDetails({ playerId = "sample-player-id", onBack = 
   const form = getFormRating(displayPlayer.form_rating || 5);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Button onClick={onBack} variant="outline">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Players
-          </Button>
-          
-          <div className="flex items-center gap-6">
-            {/* Player Avatar */}
-            <div className="relative">
-              <img 
-                src={getPlayerAvatar(displayPlayer.nationality || 'England', displayPlayer.name)}
-                alt={`${displayPlayer.name} avatar`}
-                className="w-24 h-24 rounded-full border-4 border-white shadow-xl bg-white"
-              />
-              <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-2 border-white shadow-md flex items-center justify-center text-xs font-bold"
-                   style={{ backgroundColor: displayTeam?.primary_color || '#004D98', color: 'white' }}>
-                {displayPlayer.shirt_number || '?'}
-              </div>
-            </div>
-            
-            <div>
-              <h1 className="text-4xl font-bold text-gray-800">{displayPlayer.name}</h1>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge className={getPositionColor(displayPlayer.position)}>
-                  {getPositionName(displayPlayer.position)}
-                </Badge>
-                <Badge variant="outline">Age {displayPlayer.age}</Badge>
-                <Badge variant="secondary">{displayPlayer.nationality}</Badge>
-                <Badge variant="outline">Overall: {displayPlayer.skill_rating}</Badge>
-              </div>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-sm text-gray-600">Current Club:</span>
-                <div className="flex items-center gap-2">
-                  {displayTeam?.logo_url && (
-                    <img 
-                      src={displayTeam.logo_url} 
-                      alt={`${displayTeam.name} logo`}
-                      className="w-6 h-6 rounded border border-gray-200"
-                    />
-                  )}
-                  <span className="font-medium">{displayTeam?.name}</span>
-                </div>
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={onBack}
+            className="glass-button px-4 py-2 rounded-lg text-slate-300 hover:text-white transition-all duration-300 flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Team
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="glass-card p-8">
+            <div className="animate-pulse space-y-4">
+              <div className="h-8 bg-slate-700 rounded w-1/3"></div>
+              <div className="h-4 bg-slate-700 rounded w-1/2"></div>
+              <div className="grid grid-cols-4 gap-4 mt-8">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-24 bg-slate-700 rounded"></div>
+                ))}
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Player Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Market Value</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(displayPlayer.market_value)}</div>
-              <p className="text-xs text-muted-foreground">
-                Current valuation
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Weekly Wage</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(displayPlayer.weekly_wage)}</div>
-              <p className="text-xs text-muted-foreground">
-                Per week
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Form Rating</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${form.color}`}>
-                {displayPlayer.form_rating}/10
+        ) : player ? (
+          <div className="space-y-8">
+            {/* Player Header */}
+            <div className="glass-card p-8">
+              <div className="flex items-center gap-6">
+                <div className="w-24 h-24 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+                  <User className="h-12 w-12 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-white mb-2">{player.name}</h1>
+                  <div className="flex items-center gap-4 text-slate-300">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-4 w-4" />
+                      {player.position}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      Age {player.age}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Star className="h-4 w-4" />
+                      Overall: {player.overall_rating}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {form.label}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Goals</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{displayPlayer.goals}</div>
-              <p className="text-xs text-muted-foreground">
-                This season
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Assists</CardTitle>
-              <Zap className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{displayPlayer.assists}</div>
-              <p className="text-xs text-muted-foreground">
-                This season
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="skills">Skills</TabsTrigger>
-            <TabsTrigger value="stats">Statistics</TabsTrigger>
-            <TabsTrigger value="history">Career</TabsTrigger>
-            <TabsTrigger value="contract">Contract</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="w-5 h-5" />
-                    Player Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-gray-600">Height:</span>
-                        <span className="font-medium ml-2">{displayPlayer.height_cm}cm</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Weight:</span>
-                        <span className="font-medium ml-2">{displayPlayer.weight_kg}kg</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Preferred Foot:</span>
-                        <span className="font-medium ml-2">{displayPlayer.foot === 'L' ? 'Left' : 'Right'}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Nationality:</span>
-                        <span className="font-medium ml-2">{displayPlayer.nationality}</span>
-                      </div>
-                    </div>
-                    <Separator />
-                    <div>
-                      <span className="text-gray-600">Injury Status:</span>
-                      <Badge 
-                        variant={displayPlayer.injury_status === 'fit' ? 'secondary' : 'destructive'}
-                        className="ml-2"
-                      >
-                        {displayPlayer.injury_status}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5" />
-                    Season Performance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div>
-                        <div className="text-2xl font-bold text-green-600">{displayPlayer.goals || 0}</div>
-                        <div className="text-sm text-gray-500">Goals</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-blue-600">{displayPlayer.assists || 0}</div>
-                        <div className="text-sm text-gray-500">Assists</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-purple-600">{displayPlayer.appearances}</div>
-                        <div className="text-sm text-gray-500">Apps</div>
-                      </div>
-                    </div>
-                    <Separator />
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Form Rating:</span>
-                        <div className={`flex items-center gap-1 ${form.color}`}>
-                          {form.icon}
-                          <span className="font-medium">{displayPlayer.form_rating || 5}/10</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Overall Rating:</span>
-                        <span className="font-medium">{displayPlayer.skill_rating || displayPlayer.overall_rating || 50}</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
-          </TabsContent>
-          
-          <TabsContent value="skills" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Star className="w-5 h-5" />
-                  Player Attributes
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* Physical Attributes */}
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                      <Zap className="w-5 h-5 text-yellow-500" />
-                      Physical
-                    </h3>
-                    <div className="space-y-3">
-                      {[
-                        { name: 'Pace', value: attributes.pace || 50 },
-                        { name: 'Acceleration', value: attributes.accel || 50 },
-                        { name: 'Stamina', value: attributes.stamina || 50 },
-                        { name: 'Strength', value: attributes.strength || 50 }
-                      ].map((attr) => (
-                        <div key={attr.name} className="space-y-1">
-                          <div className="flex justify-between">
-                            <span className="text-sm font-medium">{attr.name}</span>
-                            <span className={`text-sm font-bold ${getSkillColor(attr.value)}`}>
-                              {attr.value}
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full ${getSkillBarColor(attr.value)}`}
-                              style={{ width: `${attr.value}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* Technical Attributes */}
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                      <Target className="w-5 h-5 text-blue-500" />
-                      Technical
-                    </h3>
-                    <div className="space-y-3">
-                      {[
-                        { name: 'Passing', value: attributes.passing || 50 },
-                        { name: 'Vision', value: attributes.vision || 50 },
-                        { name: 'Finishing', value: attributes.finishing || 50 },
-                        { name: 'Heading', value: attributes.heading || 50 }
-                      ].map((attr) => (
-                        <div key={attr.name} className="space-y-1">
-                          <div className="flex justify-between">
-                            <span className="text-sm font-medium">{attr.name}</span>
-                            <span className={`text-sm font-bold ${getSkillColor(attr.value)}`}>
-                              {attr.value}
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full ${getSkillBarColor(attr.value)}`}
-                              style={{ width: `${attr.value}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Mental/Defensive Attributes */}
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                      <Shield className="w-5 h-5 text-green-500" />
-                      Mental & Defensive
-                    </h3>
-                    <div className="space-y-3">
-                      {[
-                        { name: 'Positioning', value: attributes.positioning || 50 },
-                        { name: 'Composure', value: attributes.composure || 50 },
-                        { name: 'Marking', value: attributes.marking || 50 },
-                        { name: 'Tackling', value: attributes.tackling || 50 }
-                      ].map((attr) => (
-                        <div key={attr.name} className="space-y-1">
-                          <div className="flex justify-between">
-                            <span className="text-sm font-medium">{attr.name}</span>
-                            <span className={`text-sm font-bold ${getSkillColor(attr.value)}`}>
-                              {attr.value}
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full ${getSkillBarColor(attr.value)}`}
-                              style={{ width: `${attr.value}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Goalkeeper Attributes (if applicable) */}
-                  {displayPlayer.position === 'GK' && (
-                    <div>
-                      <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                        <Shield className="w-5 h-5 text-yellow-500" />
-                        Goalkeeping
-                      </h3>
-                      <div className="space-y-3">
-                        {[
-                          { name: 'Reflexes', value: attributes.reflexes || 50 },
-                          { name: 'Handling', value: attributes.handling || 50 }
-                        ].map((attr) => (
-                          <div key={attr.name} className="space-y-1">
-                            <div className="flex justify-between">
-                              <span className="text-sm font-medium">{attr.name}</span>
-                              <span className={`text-sm font-bold ${getSkillColor(attr.value)}`}>
-                                {attr.value}
-                              </span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div 
-                                className={`h-2 rounded-full ${getSkillBarColor(attr.value)}`}
-                                style={{ width: `${attr.value}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="glass-card p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-slate-300">Market Value</h3>
+                  <DollarSign className="h-4 w-4 text-slate-400" />
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="stats" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
-                  Match Statistics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {matchStats.length > 0 ? (
-                  <div className="space-y-4">
-                    {matchStats.map((stat) => (
-                      <div key={stat.id} className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">
-                              {stat.match?.fixture?.home_team?.name} vs {stat.match?.fixture?.away_team?.name}
-                            </span>
-                            <Badge variant="outline">
-                              {new Date(stat.match?.created_at).toLocaleDateString()}
-                            </Badge>
-                          </div>
-                          <div className="text-sm font-bold">
-                            Rating: {stat.rating}/10
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-500">Goals:</span>
-                            <span className="font-medium ml-1">{stat.goals}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Assists:</span>
-                            <span className="font-medium ml-1">{stat.assists}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Minutes:</span>
-                            <span className="font-medium ml-1">{stat.minutes}'</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Shots:</span>
-                            <span className="font-medium ml-1">{stat.shots}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">No match statistics available</p>
-                    <p className="text-sm text-gray-400 mt-2">Statistics will appear here after matches are played</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="history" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <History className="w-5 h-5" />
-                  Career History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {displayHistory.map((transfer, index) => (
-                    <div key={transfer.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        {transfer.from_team?.logo_url && (
-                          <img 
-                            src={transfer.from_team.logo_url} 
-                            alt={`${transfer.from_team.name} logo`}
-                            className="w-8 h-8 rounded border border-gray-200"
-                          />
-                        )}
-                        <div className="text-center">
-                          <div className="text-sm font-medium">{transfer.from_team?.name}</div>
-                          <div className="text-xs text-gray-500">
-                            Tier {transfer.from_team?.tier}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex-1 flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="text-sm font-bold text-green-600">
-                            {formatCurrency(transfer.transfer_fee || 0)}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {new Date(transfer.transfer_date).toLocaleDateString()}
-                          </div>
-                          <Badge variant="outline" className="mt-1">
-                            {transfer.transfer_type}
-                          </Badge>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <div className="text-center">
-                          <div className="text-sm font-medium">{transfer.to_team?.name}</div>
-                          <div className="text-xs text-gray-500">
-                            Tier {transfer.to_team?.tier}
-                          </div>
-                        </div>
-                        {transfer.to_team?.logo_url && (
-                          <img 
-                            src={transfer.to_team.logo_url} 
-                            alt={`${transfer.to_team.name} logo`}
-                            className="w-8 h-8 rounded border border-gray-200"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {displayHistory.length === 0 && (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500">No transfer history available</p>
-                      <p className="text-sm text-gray-400 mt-2">This player's career moves will appear here</p>
-                    </div>
-                  )}
+                <div className="text-2xl font-bold text-white">
+                  £{player.market_value?.toLocaleString()}
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="contract" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="w-5 h-5" />
-                    Contract Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Weekly Wage:</span>
-                      <span className="font-bold text-green-600">
-                        {formatCurrency(displayPlayer.weekly_wage || 0)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Contract End:</span>
-                      <span className="font-medium">
-                        {displayPlayer.contract_end ? new Date(displayPlayer.contract_end).toLocaleDateString() : 'Free Agent'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Years Remaining:</span>
-                      <span className="font-bold text-blue-600">
-                        {displayPlayer.contract_years_remaining || 0} year{(displayPlayer.contract_years_remaining || 0) !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Current Club:</span>
-                      <div className="flex items-center gap-2">
-                        {displayTeam?.logo_url && (
-                          <img 
-                            src={displayTeam.logo_url} 
-                            alt={`${displayTeam.name} logo`}
-                            className="w-6 h-6 rounded border border-gray-200"
-                          />
-                        )}
-                        <span className="font-medium">{displayTeam?.name}</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                <p className="text-xs text-slate-400">Current valuation</p>
+              </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
-                    Contract Status
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-blue-600">
-                        {displayPlayer.contract_years_remaining || 0}
-                      </div>
-                      <div className="text-sm text-gray-500">Years Remaining</div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Status:</span>
-                        <Badge variant={
-                          (displayPlayer.contract_years_remaining || 0) <= 1 
-                            ? 'destructive' 
-                            : 'secondary'
-                        }>
-                          {(displayPlayer.contract_years_remaining || 0) <= 1 
-                            ? 'Expiring Soon' 
-                            : 'Secure'
-                          }
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Contract Length:</span>
-                        <span className="font-medium">
-                          {displayPlayer.contract_years_remaining || 0} year{(displayPlayer.contract_years_remaining || 0) !== 1 ? 's' : ''} left
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Shirt Number:</span>
-                        <span className="font-medium">#{displayPlayer.shirt_number || Math.floor(Math.random() * 89) + 11}</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="glass-card p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-slate-300">Weekly Wage</h3>
+                  <Banknote className="h-4 w-4 text-slate-400" />
+                </div>
+                <div className="text-2xl font-bold text-white">
+                  £{player.weekly_wage?.toLocaleString()}
+                </div>
+                <p className="text-xs text-slate-400">per week</p>
+              </div>
+
+              <div className="glass-card p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-slate-300">Contract</h3>
+                  <FileText className="h-4 w-4 text-slate-400" />
+                </div>
+                <div className="text-2xl font-bold text-white">
+                  {player.contract_years_remaining}
+                </div>
+                <p className="text-xs text-slate-400">years remaining</p>
+              </div>
+
+              <div className="glass-card p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-slate-300">Status</h3>
+                  <Activity className="h-4 w-4 text-slate-400" />
+                </div>
+                <div className={`text-2xl font-bold ${
+                  player.injury_status === 'fit' ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {player.injury_status === 'fit' ? 'Fit' : 'Injured'}
+                </div>
+                <p className="text-xs text-slate-400">
+                  {player.injury_status === 'fit' ? 'Ready to play' : 'Recovering'}
+                </p>
+              </div>
             </div>
-          </TabsContent>
-        </Tabs>
+
+            {/* Player Attributes */}
+            <div className="glass-card p-6">
+              <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-blue-400" />
+                Player Attributes
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[
+                  { name: 'Pace', value: player.pace || 0 },
+                  { name: 'Shooting', value: player.shooting || 0 },
+                  { name: 'Passing', value: player.passing || 0 },
+                  { name: 'Dribbling', value: player.dribbling || 0 },
+                  { name: 'Defending', value: player.defending || 0 },
+                  { name: 'Physical', value: player.physical || 0 }
+                ].map((attr) => (
+                  <div key={attr.name} className="glass-row p-4 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-slate-300">{attr.name}</span>
+                      <span className="text-sm font-bold text-white">{attr.value}</span>
+                    </div>
+                    <div className="w-full bg-slate-700 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-blue-400 to-blue-500 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${attr.value}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Team Information */}
+            {team && (
+              <div className="glass-card p-6">
+                <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-green-400" />
+                  Team Information
+                </h3>
+                <div className="flex items-center gap-4">
+                  <img 
+                    src={team.logo_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${team.name}`}
+                    alt={team.name}
+                    className="w-16 h-16 rounded-lg"
+                  />
+                  <div>
+                    <div className="text-xl font-bold text-white">{team.name}</div>
+                    <div className="text-slate-400">Tier {team.tier} • ELO: {team.elo_rating}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="glass-card p-8">
+            <div className="text-center">
+              <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+              <p className="text-slate-400">Player not found</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

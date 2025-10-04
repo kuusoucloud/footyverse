@@ -19,7 +19,10 @@ import {
   Crown,
   ArrowUp,
   ArrowDown,
-  Target
+  Target,
+  Play,
+  AlertTriangle,
+  Heart
 } from 'lucide-react';
 
 const supabase = createClient(
@@ -42,6 +45,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
   const [seasonProgress, setSeasonProgress] = useState<any[]>([]);
   const [globalSeason, setGlobalSeason] = useState<any>(null);
   const [activeInjuries, setActiveInjuries] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Server-side heartbeat to trigger orchestration
   useEffect(() => {
@@ -210,119 +214,140 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
   };
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-              <span className="text-blue-600">⚽</span>
+            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+              <span className="text-blue-400">⚽</span>
               Autonomous Football Universe
             </h1>
-            <p className="text-gray-600 mt-2">
+            <p className="text-slate-300 mt-2">
               Server-driven football ecosystem - same state for all clients worldwide!
             </p>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium text-green-600">Connected</span>
+              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-green-400">Connected</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span className="text-sm font-medium text-green-600">Server Active</span>
+              <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+              <span className="text-sm font-medium text-green-400">Server Active</span>
             </div>
           </div>
         </div>
 
         {/* Stats Overview - Single instance */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Teams</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalTeams}</div>
-              <p className="text-xs text-muted-foreground">
+          <div className="glass-card p-6">
+            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <h3 className="text-sm font-medium text-slate-300">Teams</h3>
+              <Users className="h-4 w-4 text-slate-400" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-white">{stats.totalTeams}</div>
+              <p className="text-xs text-slate-400">
                 Across {stats.totalTiers} tiers
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Players</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalPlayers}</div>
-              <div className="text-xs text-muted-foreground space-y-1">
+          <div className="glass-card p-6">
+            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <h3 className="text-sm font-medium text-slate-300">Players</h3>
+              <TrendingUp className="h-4 w-4 text-slate-400" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-white">{stats.totalPlayers}</div>
+              <div className="text-xs text-slate-400 space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-green-600">Fit:</span>
+                  <span className="text-green-400">Fit:</span>
                   <span>{stats.fitPlayers}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-red-600">Injured:</span>
+                  <span className="text-red-400">Injured:</span>
                   <span>{stats.injuredPlayers}</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Live Matches</CardTitle>
-              <Trophy className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.liveMatches}</div>
-              <p className="text-xs text-muted-foreground">
+          <div className="glass-card p-6">
+            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <h3 className="text-sm font-medium text-slate-300">Live Matches</h3>
+              <Trophy className="h-4 w-4 text-slate-400" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-white">{stats.liveMatches}</div>
+              <p className="text-xs text-slate-400">
                 Currently playing
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Global Season</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{globalSeason?.season_number || 1}</div>
-              <p className="text-xs text-muted-foreground">
+          <div className="glass-card p-6">
+            <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <h3 className="text-sm font-medium text-slate-300">Global Season</h3>
+              <Calendar className="h-4 w-4 text-slate-400" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-white">{globalSeason?.season_number || 1}</div>
+              <p className="text-xs text-slate-400">
                 {globalSeason?.tiers_completed || 0}/{globalSeason?.total_tiers || 5} tiers complete
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Global Season Status */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
+        <div className="glass-card p-6 mb-8">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-blue-400" />
               Global Season {globalSeason?.season_number || 1} Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Season Status:</span>
-                <Badge variant={globalSeason?.season_status === 'active' ? 'default' : 'secondary'}>
-                  {globalSeason?.season_status?.toUpperCase() || 'ACTIVE'}
-                </Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Tiers Completed:</span>
-                <span>{globalSeason?.tiers_completed || 0}/{globalSeason?.total_tiers || 5}</span>
-              </div>
+            </h2>
+          </div>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="font-medium text-slate-300">Season Status:</span>
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                globalSeason?.season_status === 'active' 
+                  ? 'bg-green-400/20 text-green-400 border border-green-400/30' 
+                  : 'bg-slate-400/20 text-slate-400 border border-slate-400/30'
+              }`}>
+                {globalSeason?.season_status?.toUpperCase() || 'ACTIVE'}
+              </span>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex justify-between items-center">
+              <span className="font-medium text-slate-300">Tiers Completed:</span>
+              <span className="text-white">{globalSeason?.tiers_completed || 0}/{globalSeason?.total_tiers || 5}</span>
+            </div>
+          </div>
+        </div>
 
         {/* Navigation Tabs */}
-        <Tabs defaultValue="overview" className="w-full">
+        <div className="glass-card p-1 mb-6">
+          <div className="grid grid-cols-6 gap-1">
+            {['overview', 'matches', 'standings', 'transfers', 'seasons', 'injuries'].map((tab) => (
+              <button
+                key={tab}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                  activeTab === tab
+                    ? 'glass-primary text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-white/10'
+                }`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} className="w-full">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="matches">Live Matches</TabsTrigger>
@@ -333,703 +358,353 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
           </TabsList>
           
           <TabsContent value="overview" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Autonomous Football Universe */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Trophy className="h-5 w-5 text-blue-600" />
-                    Autonomous Football Universe
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+            <div className="mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Autonomous Football Universe */}
+                <div className="glass-card p-6">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-blue-400" />
+                      Autonomous Football Universe
+                    </h3>
+                  </div>
                   <div className="space-y-3">
                     <div className="flex gap-2 mb-4">
                       {[1, 2, 3, 4, 5].map((tier) => (
-                        <Button
+                        <button
                           key={tier}
-                          variant={selectedTier === tier ? "default" : "outline"}
-                          size="sm"
+                          className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                            selectedTier === tier
+                              ? 'glass-primary text-white'
+                              : 'glass-button text-slate-300 hover:text-white'
+                          }`}
                           onClick={() => setSelectedTier(tier)}
-                          className="flex-1"
                         >
                           Tier {tier}
-                        </Button>
+                        </button>
                       ))}
                     </div>
-                    <ul className="text-sm text-gray-600 space-y-2">
+                    <ul className="text-sm text-slate-300 space-y-2">
                       <li>• Server-driven match simulation</li>
                       <li>• Automatic fixture generation</li>
                       <li>• Synchronized across all clients</li>
                       <li>• Consistent league progression</li>
                     </ul>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
 
-              {/* Transfer System */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-yellow-600" />
-                    Transfer System
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="text-sm text-gray-600 space-y-2">
+                {/* Transfer System */}
+                <div className="glass-card p-6">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-yellow-400" />
+                      Transfer System
+                    </h3>
+                  </div>
+                  <ul className="text-sm text-slate-300 space-y-2">
                     <li>• Server-controlled transfers</li>
                     <li>• Global market consistency</li>
                     <li>• Same prices for all clients</li>
                     <li>• Synchronized player movements</li>
                   </ul>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </div>
 
-            <Separator className="my-6" />
-            
-            <div className="bg-blue-50 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-800 mb-2">🌍 Global Synchronization</h4>
-              <p className="text-sm text-blue-700">
-                All match results, transfers, and league standings are synchronized server-side. 
-                Every client sees the exact same football universe state in real-time.
-              </p>
+              <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent my-6"></div>
+              
+              <div className="glass-primary p-4 rounded-lg">
+                <h4 className="font-semibold text-blue-300 mb-2">🌍 Global Synchronization</h4>
+                <p className="text-sm text-blue-200">
+                  All match results, transfers, and league standings are synchronized server-side. 
+                  Every client sees the exact same football universe state in real-time.
+                </p>
+              </div>
             </div>
           </TabsContent>
           
           <TabsContent value="matches" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="w-5 h-5" />
+            <div className="glass-card p-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <Play className="h-5 w-5 text-green-400" />
                   Live Matches
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {liveMatches.length > 0 ? (
-                  <div className="space-y-4">
-                    {liveMatches.map((fixture) => (
-                      <div key={fixture.id} className="bg-red-50 rounded-lg p-4 border border-red-200">
-                        <div className="flex items-center justify-between mb-3">
-                          <Badge variant="destructive" className="animate-pulse">LIVE</Badge>
-                          <div className="text-sm text-gray-600">
-                            Round {fixture.round} • {fixture.minute || 0}'
+                </h3>
+              </div>
+              {liveMatches.length === 0 ? (
+                <div className="text-center py-8">
+                  <Clock className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                  <p className="text-slate-400">No live matches at the moment</p>
+                  <p className="text-sm text-slate-500 mt-2">Check back soon for live action!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {liveMatches.map((match) => (
+                    <div key={match.id} className="glass-row p-4 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <img 
+                              src={match.home_team.logo_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.home_team.name}`}
+                              alt={match.home_team.name}
+                              className="w-8 h-8 rounded"
+                            />
+                            <span className="font-medium text-white">{match.home_team.name}</span>
+                          </div>
+                          <span className="text-slate-400">vs</span>
+                          <div className="flex items-center gap-2">
+                            <img 
+                              src={match.away_team.logo_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.away_team.name}`}
+                              alt={match.away_team.name}
+                              className="w-8 h-8 rounded"
+                            />
+                            <span className="font-medium text-white">{match.away_team.name}</span>
                           </div>
                         </div>
-                        
-                        <div className="flex items-center justify-between">
-                          {/* Home Team */}
-                          <div className="flex items-center gap-3 flex-1">
-                            {fixture.home_team?.logo_url ? (
-                              <img 
-                                src={fixture.home_team.logo_url} 
-                                alt={`${fixture.home_team.name} logo`}
-                                className="w-10 h-10 rounded border-2 border-white shadow-md bg-white p-1"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  const fallback = target.nextElementSibling as HTMLElement;
-                                  if (fallback) fallback.style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            <div 
-                              className="w-10 h-10 rounded border-2 border-white shadow-md flex items-center justify-center text-sm font-bold text-white"
-                              style={{ 
-                                backgroundColor: fixture.home_team?.primary_color || '#3B82F6',
-                                display: fixture.home_team?.logo_url ? 'none' : 'flex'
-                              }}
-                            >
-                              {fixture.home_team?.name?.split(' ').map((word: string) => word[0]).join('').slice(0, 2) || 'HT'}
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-semibold text-gray-800">{fixture.home_team?.name || 'Home Team'}</p>
-                            </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-white">
+                            {match.home_score} - {match.away_score}
                           </div>
-
-                          {/* Score */}
-                          <div className="mx-6 text-center">
-                            <div className="text-2xl font-bold text-gray-800">
-                              {fixture.home_score || 0} - {fixture.away_score || 0}
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {fixture.minute ? `${fixture.minute}'` : "0'"}
-                            </div>
-                          </div>
-
-                          {/* Away Team */}
-                          <div className="flex items-center gap-3 flex-1 justify-end">
-                            <div className="flex-1 text-right">
-                              <p className="font-semibold text-gray-800">{fixture.away_team?.name || 'Away Team'}</p>
-                            </div>
-                            {fixture.away_team?.logo_url ? (
-                              <img 
-                                src={fixture.away_team.logo_url} 
-                                alt={`${fixture.away_team.name} logo`}
-                                className="w-10 h-10 rounded border-2 border-white shadow-md bg-white p-1"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  const fallback = target.nextElementSibling as HTMLElement;
-                                  if (fallback) fallback.style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            <div 
-                              className="w-10 h-10 rounded border-2 border-white shadow-md flex items-center justify-center text-sm font-bold text-white"
-                              style={{ 
-                                backgroundColor: fixture.away_team?.primary_color || '#EF4444',
-                                display: fixture.away_team?.logo_url ? 'none' : 'flex'
-                              }}
-                            >
-                              {fixture.away_team?.name?.split(' ').map((word: string) => word[0]).join('').slice(0, 2) || 'AT'}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Match Events or Additional Info */}
-                        <div className="mt-3 pt-3 border-t border-red-200">
-                          <div className="flex items-center justify-between text-sm text-gray-600">
-                            <div className="flex items-center gap-2">
-                              <Clock className="w-4 h-4 text-red-600" />
-                              <span>Match in progress</span>
-                            </div>
-                            <div className="text-xs">
-                              Match ID: {fixture.id.slice(0, 8)}
-                            </div>
+                          <div className="text-sm text-green-400">
+                            {match.minute}'
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No live matches at the moment</p>
-                    <p className="text-sm">Server will start matches automatically</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </TabsContent>
           
           <TabsContent value="standings" className="mt-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Trophy className="w-5 h-5" />
-                    Season Standings
-                  </CardTitle>
-                  <div className="flex gap-2">
+            {activeTab === 'standings' && (
+              <div className="mt-6">
+                <div className="glass-card p-6">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-yellow-400" />
+                      Season Standings
+                    </h3>
+                  </div>
+                  <div className="flex gap-2 mb-6">
                     {[1, 2, 3, 4, 5].map((tier) => (
-                      <Button
+                      <button
                         key={tier}
-                        variant={selectedTier === tier ? "default" : "outline"}
-                        size="sm"
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                          selectedTier === tier
+                            ? 'glass-primary text-white'
+                            : 'glass-button text-slate-300 hover:text-white'
+                        }`}
                         onClick={() => setSelectedTier(tier)}
                       >
                         Tier {tier}
-                      </Button>
+                      </button>
                     ))}
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-white/10">
+                          <th className="text-left p-3 text-slate-300 font-medium">Pos</th>
+                          <th className="text-left p-3 text-slate-300 font-medium">Team</th>
+                          <th className="text-center p-3 text-slate-300 font-medium">P</th>
+                          <th className="text-center p-3 text-slate-300 font-medium">W</th>
+                          <th className="text-center p-3 text-slate-300 font-medium">D</th>
+                          <th className="text-center p-3 text-slate-300 font-medium">L</th>
+                          <th className="text-center p-3 text-slate-300 font-medium">GF</th>
+                          <th className="text-center p-3 text-slate-300 font-medium">GA</th>
+                          <th className="text-center p-3 text-slate-300 font-medium">GD</th>
+                          <th className="text-center p-3 text-slate-300 font-medium">Pts</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {standings
+                          .filter(team => team.tier === selectedTier)
+                          .sort((a, b) => {
+                            if (b.points !== a.points) return b.points - a.points;
+                            const aGD = a.goals_for - a.goals_against;
+                            const bGD = b.goals_for - b.goals_against;
+                            if (bGD !== aGD) return bGD - aGD;
+                            return b.goals_for - a.goals_for;
+                          })
+                          .map((team, index) => (
+                            <tr 
+                              key={team.id} 
+                              className={`glass-row cursor-pointer transition-all duration-300 ${
+                                index < 2 ? 'bg-green-400/10 border-l-2 border-green-400' : 
+                                index >= standings.filter(t => t.tier === selectedTier).length - 3 ? 'bg-red-400/10 border-l-2 border-red-400' : ''
+                              }`}
+                              onClick={() => onTeamSelect?.(team.id)}
+                            >
+                              <td className="p-3 font-medium text-white">{index + 1}</td>
+                              <td className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <img 
+                                    src={team.logo_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${team.name}`}
+                                    alt={team.name}
+                                    className="w-6 h-6 rounded"
+                                  />
+                                  <span className="font-medium text-white">{team.name}</span>
+                                </div>
+                              </td>
+                              <td className="text-center p-3 text-slate-300">{team.matches_played}</td>
+                              <td className="text-center p-3 text-slate-300">{team.wins}</td>
+                              <td className="text-center p-3 text-slate-300">{team.draws}</td>
+                              <td className="text-center p-3 text-slate-300">{team.losses}</td>
+                              <td className="text-center p-3 text-slate-300">{team.goals_for}</td>
+                              <td className="text-center p-3 text-slate-300">{team.goals_against}</td>
+                              <td className="text-center p-3 text-slate-300">{team.goals_for - team.goals_against}</td>
+                              <td className="text-center p-3 font-bold text-white">{team.points}</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {standings.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 border-b pb-2">
-                      <div className="col-span-1">Pos</div>
-                      <div className="col-span-4">Team</div>
-                      <div className="col-span-1">MP</div>
-                      <div className="col-span-1">W</div>
-                      <div className="col-span-1">D</div>
-                      <div className="col-span-1">L</div>
-                      <div className="col-span-1">GD</div>
-                      <div className="col-span-1">Pts</div>
-                      <div className="col-span-1">ELO</div>
-                    </div>
-                    {standings.filter(s => s.team?.tier === selectedTier).map((standing, index) => (
-                      <div 
-                        key={standing.id} 
-                        className={`grid grid-cols-12 gap-2 items-center py-2 rounded transition-colors ${
-                          onTeamSelect ? 'hover:bg-blue-50 cursor-pointer' : 'hover:bg-gray-50'
-                        }`}
-                        onClick={() => onTeamSelect && onTeamSelect(standing.team_id)}
-                      >
-                        <div className="col-span-1 flex items-center gap-1">
-                          <span className="font-medium">{index + 1}</span>
-                          {getPositionIcon(index + 1)}
-                        </div>
-                        <div className="col-span-4">
-                          <div className="flex items-center gap-2">
-                            {standing.team?.logo_url ? (
-                              <img 
-                                src={standing.team.logo_url} 
-                                alt={`${standing.team.name} logo`}
-                                className="w-8 h-8 rounded border-2 border-white shadow-md bg-white p-1"
-                                onError={(e) => {
-                                  // Fallback to initials if logo fails to load
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  const fallback = target.nextElementSibling as HTMLElement;
-                                  if (fallback) fallback.style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            <div 
-                              className="w-8 h-8 rounded border-2 border-white shadow-md flex items-center justify-center text-xs font-bold text-white"
-                              style={{ 
-                                backgroundColor: standing.team?.primary_color,
-                                display: standing.team?.logo_url ? 'none' : 'flex'
-                              }}
-                            >
-                              {standing.team?.name.split(' ').map((word: string) => word[0]).join('').slice(0, 2)}
-                            </div>
-                            <span className={`font-medium ${onTeamSelect ? 'text-blue-600 hover:text-blue-800' : ''}`}>
-                              {standing.team?.name}
-                            </span>
-                            {onTeamSelect && (
-                              <span className="text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                Click to view →
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="col-span-1 text-sm">{standing.played}</div>
-                        <div className="col-span-1 text-sm text-green-600">{standing.won}</div>
-                        <div className="col-span-1 text-sm text-yellow-600">{standing.drawn}</div>
-                        <div className="col-span-1 text-sm text-red-600">{standing.lost}</div>
-                        <div className="col-span-1 text-sm">
-                          <span className={standing.gd >= 0 ? 'text-green-600' : 'text-red-600'}>
-                            {standing.gd >= 0 ? '+' : ''}{standing.gd}
-                          </span>
-                        </div>
-                        <div className="col-span-1 text-sm font-bold">{standing.points}</div>
-                        <div className="col-span-1 text-xs text-gray-600">
-                          {Math.round(standing.team?.elo || 0)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No standings data yet</p>
-                    <p className="text-sm">Matches need to be completed to generate standings</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="transfers" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Recent Transfers
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {recentTransfers.length > 0 ? (
+            {activeTab === 'transfers' && (
+              <div className="mt-6">
+                <div className="glass-card p-6">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-green-400" />
+                      Transfer Market
+                    </h3>
+                  </div>
                   <div className="space-y-4">
-                    {recentTransfers.slice(0, 10).map((transfer) => (
-                      <div key={transfer.id} className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                        <div className="flex items-center justify-between">
-                          {/* Player Info */}
-                          <div className="flex items-center gap-4 flex-1">
-                            <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                              <span className="text-lg font-bold text-gray-600">
-                                {transfer.player?.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'P'}
-                              </span>
-                            </div>
+                    {recentTransfers.length === 0 ? (
+                      <div className="text-center py-8">
+                        <DollarSign className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                        <p className="text-slate-400">No recent transfers</p>
+                        <p className="text-sm text-slate-500 mt-2">Transfer activity will appear here</p>
+                      </div>
+                    ) : (
+                      recentTransfers.map((transfer) => (
+                        <div key={transfer.id} className="glass-row p-4 rounded-lg">
+                          <div className="flex justify-between items-center">
                             <div>
-                              <p className="font-semibold text-gray-800">{transfer.player?.name || 'Unknown Player'}</p>
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <span>{transfer.player?.position || 'Unknown'}</span>
-                                <span>•</span>
-                                <span>{transfer.player?.age || 'N/A'} years</span>
-                                <span>•</span>
-                                <span>Rating: {transfer.player?.overall_rating || 'N/A'}</span>
+                              <div className="font-medium text-white">{transfer.player_name}</div>
+                              <div className="text-sm text-slate-400">
+                                {transfer.from_team} → {transfer.to_team}
                               </div>
                             </div>
-                          </div>
-
-                          {/* Transfer Direction */}
-                          <div className="flex items-center gap-4 flex-1 justify-center">
-                            {/* From Team */}
-                            <div className="flex items-center gap-2">
-                              {transfer.from_team?.logo_url ? (
-                                <img 
-                                  src={transfer.from_team.logo_url} 
-                                  alt={`${transfer.from_team.name} logo`}
-                                  className="w-8 h-8 rounded border-2 border-white shadow-md bg-white p-1"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                    const fallback = target.nextElementSibling as HTMLElement;
-                                    if (fallback) fallback.style.display = 'flex';
-                                  }}
-                                />
-                              ) : null}
-                              <div 
-                                className="w-8 h-8 rounded border-2 border-white shadow-md flex items-center justify-center text-xs font-bold text-white"
-                                style={{ 
-                                  backgroundColor: transfer.from_team?.primary_color || '#6B7280',
-                                  display: transfer.from_team?.logo_url ? 'none' : 'flex'
-                                }}
-                              >
-                                {transfer.from_team?.name?.split(' ').map((word: string) => word[0]).join('').slice(0, 2) || 'FT'}
-                              </div>
-                              <span className="text-sm font-medium text-gray-700 max-w-24 truncate">
-                                {transfer.from_team?.name || 'Unknown'}
-                              </span>
+                            <div className="text-right">
+                              <div className="font-bold text-green-400">£{transfer.fee?.toLocaleString()}</div>
+                              <div className="text-xs text-slate-500">{transfer.date}</div>
                             </div>
-
-                            {/* Arrow */}
-                            <div className="flex items-center gap-2 text-blue-600">
-                              <div className="w-8 h-0.5 bg-blue-600"></div>
-                              <div className="w-0 h-0 border-l-4 border-l-blue-600 border-t-2 border-t-transparent border-b-2 border-b-transparent"></div>
-                            </div>
-
-                            {/* To Team */}
-                            <div className="flex items-center gap-2">
-                              {transfer.to_team?.logo_url ? (
-                                <img 
-                                  src={transfer.to_team.logo_url} 
-                                  alt={`${transfer.to_team.name} logo`}
-                                  className="w-8 h-8 rounded border-2 border-white shadow-md bg-white p-1"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                    const fallback = target.nextElementSibling as HTMLElement;
-                                    if (fallback) fallback.style.display = 'flex';
-                                  }}
-                                />
-                              ) : null}
-                              <div 
-                                className="w-8 h-8 rounded border-2 border-white shadow-md flex items-center justify-center text-xs font-bold text-white"
-                                style={{ 
-                                  backgroundColor: transfer.to_team?.primary_color || '#10B981',
-                                  display: transfer.to_team?.logo_url ? 'none' : 'flex'
-                                }}
-                              >
-                                {transfer.to_team?.name?.split(' ').map((word: string) => word[0]).join('').slice(0, 2) || 'TT'}
-                              </div>
-                              <span className="text-sm font-medium text-gray-700 max-w-24 truncate">
-                                {transfer.to_team?.name || 'Unknown'}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Transfer Details */}
-                          <div className="text-right flex-1">
-                            <p className="font-semibold text-green-600 text-lg">
-                              {formatCurrency(transfer.transfer_fee || 0)}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {formatTimeAgo(transfer.created_at)}
-                            </p>
-                            {transfer.contract_length && (
-                              <p className="text-xs text-gray-600">
-                                {transfer.contract_length} year contract
-                              </p>
-                            )}
                           </div>
                         </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </TabsContent>
 
-                        {/* Additional Transfer Info */}
-                        <div className="mt-3 pt-3 border-t border-blue-200">
-                          <div className="flex items-center justify-between text-sm text-gray-600">
-                            <div className="flex items-center gap-4">
-                              <span>Transfer Type: {transfer.transfer_type || 'Permanent'}</span>
-                              {transfer.wage && (
-                                <span>Weekly Wage: {formatCurrency(transfer.wage)}</span>
-                              )}
-                            </div>
-                            <div className="text-xs">
-                              Transfer ID: {transfer.id.slice(0, 8)}
-                            </div>
+          <TabsContent value="seasons" className="mt-6">
+            {activeTab === 'seasons' && (
+              <div className="mt-6">
+                <div className="glass-card p-6">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-blue-400" />
+                      Season Progress
+                    </h3>
+                    <p className="text-slate-400 text-sm mt-1">
+                      Track season progress across all tiers. 1 season = 38 matches per team.
+                    </p>
+                  </div>
+                  <div className="space-y-4">
+                    {seasonProgress.map((season) => (
+                      <div key={`${season.tier}-${season.season_number}`} className="glass-row p-4 rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-white">Tier {season.tier}</span>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              season.season_status === 'active' 
+                                ? 'bg-green-400/20 text-green-400 border border-green-400/30'
+                                : season.season_status === 'completed'
+                                ? 'bg-blue-400/20 text-blue-400 border border-blue-400/30'
+                                : 'bg-yellow-400/20 text-yellow-400 border border-yellow-400/30'
+                            }`}>
+                              {season.season_status}
+                            </span>
                           </div>
+                          <div className="text-sm text-slate-400">
+                            Season {season.season_number}
+                          </div>
+                        </div>
+                        <div className="w-full bg-slate-700 rounded-full h-2">
+                          <div 
+                            className="bg-gradient-to-r from-blue-400 to-blue-500 h-2 rounded-full transition-all duration-500"
+                            style={{ 
+                              width: `${Math.min(100, (season.matches_completed / season.total_matches_required) * 100)}%` 
+                            }}
+                          ></div>
+                        </div>
+                        <div className="flex justify-between text-xs text-slate-400 mt-1">
+                          <span>{season.matches_completed} matches completed</span>
+                          <span>{season.total_matches_required} total matches</span>
                         </div>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <DollarSign className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No recent transfers</p>
-                    <p className="text-sm">Server handles transfers automatically</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="seasons" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Season Progression
-                </CardTitle>
-                <CardDescription>
-                  Track season progress across all tiers. 1 season = 38 matches per team.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {seasonProgress.length > 0 ? (
-                  <div className="space-y-6">
-                    {seasonProgress.map((season) => {
-                      const progressPercentage = (season.matches_completed / season.total_matches_required) * 100;
-                      const isNearCompletion = progressPercentage >= 90;
-                      
-                      return (
-                        <div key={`${season.tier}-${season.season_number}`} className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-200">
-                          <div className="flex items-center justify-between mb-4">
-                            <div>
-                              <h3 className="text-xl font-bold text-gray-800">
-                                Tier {season.tier} - Season {season.season_number}
-                              </h3>
-                              <p className="text-sm text-gray-600">
-                                {season.matches_completed} of {season.total_matches_required} matches completed
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-2xl font-bold text-blue-600">
-                                {progressPercentage.toFixed(1)}%
-                              </div>
-                              <Badge variant={isNearCompletion ? "destructive" : "secondary"}>
-                                {isNearCompletion ? "Season Ending" : "In Progress"}
-                              </Badge>
-                            </div>
-                          </div>
-                          
-                          {/* Progress Bar */}
-                          <div className="mb-4">
-                            <div className="w-full bg-gray-200 rounded-full h-3">
-                              <div 
-                                className={`h-3 rounded-full transition-all duration-300 ${
-                                  isNearCompletion ? 'bg-red-500' : 'bg-blue-500'
-                                }`}
-                                style={{ width: `${Math.min(100, progressPercentage)}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                          
-                          {/* Season Details */}
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div className="bg-white rounded-lg p-3 border">
-                              <div className="text-gray-600">Matches Left</div>
-                              <div className="font-bold text-lg">
-                                {season.total_matches_required - season.matches_completed}
-                              </div>
-                            </div>
-                            <div className="bg-white rounded-lg p-3 border">
-                              <div className="text-gray-600">Season Status</div>
-                              <div className="font-bold text-lg capitalize">
-                                {season.season_status}
-                              </div>
-                            </div>
-                            <div className="bg-white rounded-lg p-3 border">
-                              <div className="text-gray-600">Started</div>
-                              <div className="font-bold text-sm">
-                                {new Date(season.season_start_date).toLocaleDateString()}
-                              </div>
-                            </div>
-                            <div className="bg-white rounded-lg p-3 border">
-                              <div className="text-gray-600">Transfer Windows</div>
-                              <div className="font-bold text-sm">
-                                {progressPercentage < 10 ? "Summer Open" : 
-                                 progressPercentage >= 15 && progressPercentage <= 25 ? "Winter Open" :
-                                 "Closed"}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Season Milestones */}
-                          <div className="mt-4 pt-4 border-t border-blue-200">
-                            <div className="flex items-center justify-between text-xs text-gray-600">
-                              <div className={`flex items-center gap-1 ${progressPercentage >= 0 ? 'text-green-600 font-semibold' : ''}`}>
-                                <div className={`w-2 h-2 rounded-full ${progressPercentage >= 0 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                                Season Start
-                              </div>
-                              <div className={`flex items-center gap-1 ${progressPercentage >= 30 ? 'text-green-600 font-semibold' : ''}`}>
-                                <div className={`w-2 h-2 rounded-full ${progressPercentage >= 30 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                                Mid-Season
-                              </div>
-                              <div className={`flex items-center gap-1 ${progressPercentage >= 70 ? 'text-green-600 font-semibold' : ''}`}>
-                                <div className={`w-2 h-2 rounded-full ${progressPercentage >= 70 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                                Final Stretch
-                              </div>
-                              <div className={`flex items-center gap-1 ${progressPercentage >= 100 ? 'text-green-600 font-semibold' : ''}`}>
-                                <div className={`w-2 h-2 rounded-full ${progressPercentage >= 100 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                                Season End
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* What happens at season end */}
-                          {isNearCompletion && (
-                            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                              <div className="flex items-center gap-2 text-yellow-800">
-                                <AlertCircle className="w-4 h-4" />
-                                <span className="font-semibold">Season Ending Soon!</span>
-                              </div>
-                              <div className="text-sm text-yellow-700 mt-1">
-                                When this season completes: Players age +1 year, contracts reduce by 1 year, 
-                                new season begins, transfer windows reset.
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No active seasons found</p>
-                    <p className="text-sm">Server will initialize seasons automatically</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="injuries" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5" />
-                  Active Injuries
-                </CardTitle>
-                <CardDescription>
-                  Current player injuries across all teams. Players recover based on matches played (1 match = 1 week recovery).
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {activeInjuries.length > 0 ? (
+            {activeTab === 'injuries' && (
+              <div className="mt-6">
+                <div className="glass-card p-6">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-red-400" />
+                      Injury Report
+                    </h3>
+                  </div>
                   <div className="space-y-4">
-                    {/* Injury Summary */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                      <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                        <div className="text-sm text-green-600">Minor Injuries</div>
-                        <div className="text-xl font-bold text-green-800">
-                          {activeInjuries.filter(i => i.severity === 'minor').length}
-                        </div>
-                        <div className="text-xs text-green-600">1-3 weeks</div>
+                    {injuredPlayers.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Heart className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                        <p className="text-slate-400">No current injuries</p>
+                        <p className="text-sm text-slate-500 mt-2">All players are fit and ready!</p>
                       </div>
-                      <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                        <div className="text-sm text-yellow-600">Moderate Injuries</div>
-                        <div className="text-xl font-bold text-yellow-800">
-                          {activeInjuries.filter(i => i.severity === 'moderate').length}
-                        </div>
-                        <div className="text-xs text-yellow-600">3-6 weeks</div>
-                      </div>
-                      <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
-                        <div className="text-sm text-orange-600">Major Injuries</div>
-                        <div className="text-xl font-bold text-orange-800">
-                          {activeInjuries.filter(i => i.severity === 'major').length}
-                        </div>
-                        <div className="text-xs text-orange-600">6-18 weeks</div>
-                      </div>
-                      <div className="bg-red-50 rounded-lg p-3 border border-red-200">
-                        <div className="text-sm text-red-600">Career Ending</div>
-                        <div className="text-xl font-bold text-red-800">
-                          {activeInjuries.filter(i => i.severity === 'career_ending').length}
-                        </div>
-                        <div className="text-xs text-red-600">Retirement</div>
-                      </div>
-                    </div>
-
-                    {/* Injury List */}
-                    <div className="space-y-3">
-                      {activeInjuries.slice(0, 20).map((injury) => {
-                        const recoveryProgress = injury.recovery_weeks_completed / Math.max(injury.recovery_weeks_needed, 1) * 100;
-                        const matchesRemaining = Math.max(0, injury.recovery_weeks_needed - injury.recovery_weeks_completed);
-                        
-                        return (
-                          <div key={injury.id} className={`rounded-lg p-4 border ${
-                            injury.severity === 'minor' ? 'bg-green-50 border-green-200' :
-                            injury.severity === 'moderate' ? 'bg-yellow-50 border-yellow-200' :
-                            injury.severity === 'major' ? 'bg-orange-50 border-orange-200' :
-                            'bg-red-50 border-red-200'
-                          }`}>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                                  <span className="text-sm font-bold text-gray-600">
-                                    {injury.player?.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'P'}
-                                  </span>
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-gray-800">
-                                    {injury.player?.name || 'Unknown Player'}
-                                  </p>
-                                  <p className="text-sm text-gray-600">
-                                    {injury.player?.team?.name || 'Unknown Team'}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="text-right">
-                                <Badge variant={
-                                  injury.severity === 'minor' ? 'secondary' :
-                                  injury.severity === 'moderate' ? 'default' :
-                                  injury.severity === 'major' ? 'destructive' :
-                                  'destructive'
-                                }>
-                                  {injury.severity.replace('_', ' ').toUpperCase()}
-                                </Badge>
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {matchesRemaining} matches remaining
-                                </div>
-                              </div>
+                    ) : (
+                      injuredPlayers.map((player) => (
+                        <div key={player.id} className="glass-row p-4 rounded-lg">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="font-medium text-white">{player.name}</div>
+                              <div className="text-sm text-slate-400">{player.team_name}</div>
                             </div>
-                            
-                            {/* Recovery Progress Bar */}
-                            <div className="mt-3">
-                              <div className="flex justify-between text-xs text-gray-600 mb-1">
-                                <span>Recovery Progress</span>
-                                <span>{Math.round(recoveryProgress)}%</span>
+                            <div className="text-right">
+                              <div className={`font-medium ${
+                                player.injury_status === 'minor_injury' ? 'text-yellow-400' :
+                                player.injury_status === 'major_injury' ? 'text-red-400' :
+                                'text-slate-400'
+                              }`}>
+                                {player.injury_status?.replace('_', ' ')}
                               </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div 
-                                  className={`h-2 rounded-full transition-all duration-300 ${
-                                    injury.severity === 'minor' ? 'bg-green-500' :
-                                    injury.severity === 'moderate' ? 'bg-yellow-500' :
-                                    injury.severity === 'major' ? 'bg-orange-500' :
-                                    'bg-red-500'
-                                  }`}
-                                  style={{ width: `${Math.min(100, recoveryProgress)}%` }}
-                                ></div>
-                              </div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                {injury.recovery_weeks_completed}/{injury.recovery_weeks_needed} matches completed
+                              <div className="text-xs text-slate-500">
+                                {player.recovery_date ? `Until ${new Date(player.recovery_date).toLocaleDateString()}` : 'TBD'}
                               </div>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-
-                    {activeInjuries.length > 20 && (
-                      <div className="text-center py-4 text-gray-500">
-                        <p>Showing 20 of {activeInjuries.length} active injuries</p>
-                      </div>
+                        </div>
+                      ))
                     )}
                   </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <AlertCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No active injuries</p>
-                    <p className="text-sm">All players are currently fit</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </div>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 
