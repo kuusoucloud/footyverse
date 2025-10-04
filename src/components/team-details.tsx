@@ -209,7 +209,25 @@ export default function TeamDetails({ teamId, onBack }: TeamDetailsProps) {
                   style={{ 
                     filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))',
                   }}
+                  onError={(e) => {
+                    // Fallback to initials if logo fails to load
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
                 />
+                <div 
+                  className="w-20 h-20 rounded-lg border-4 border-white shadow-xl flex items-center justify-center"
+                  style={{ 
+                    backgroundColor: team.primary_color,
+                    display: 'none'
+                  }}
+                >
+                  <span className="text-white font-bold text-xl">
+                    {team.name.split(' ').map((word: string) => word[0]).join('').slice(0, 3)}
+                  </span>
+                </div>
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white shadow-md"
                      style={{ backgroundColor: team.secondary_color }}>
                 </div>

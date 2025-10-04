@@ -313,7 +313,23 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
                                   src={standing.team.logo_url} 
                                   alt={`${standing.team.name} logo`}
                                   className="w-8 h-8 rounded border-2 border-white shadow-md bg-white p-1"
+                                  onError={(e) => {
+                                    // Fallback to initials if logo fails to load
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const fallback = target.nextElementSibling as HTMLElement;
+                                    if (fallback) fallback.style.display = 'flex';
+                                  }}
                                 />
+                                <div 
+                                  className="w-8 h-8 rounded border-2 border-white shadow-md flex items-center justify-center text-xs font-bold text-white"
+                                  style={{ 
+                                    backgroundColor: standing.team?.primary_color,
+                                    display: 'none'
+                                  }}
+                                >
+                                  {standing.team?.name.split(' ').map((word: string) => word[0]).join('').slice(0, 2)}
+                                </div>
                               </div>
                             ) : (
                               <div 
