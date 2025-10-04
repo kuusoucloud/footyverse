@@ -219,7 +219,7 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
         console.error('Live matches error:', liveError);
       }
 
-      // Get the next matches from each tier (4 from each tier = 20 total)
+      // Get upcoming matches in play order (tier rotation: T1→T2→T3→T4→T5→T1...)
       const { data: upcomingData, error: upcomingError } = await supabase
         .from('fixtures')
         .select(`
@@ -229,7 +229,7 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
         `)
         .eq('status', 'scheduled')
         .order('scheduled_at', { ascending: true })
-        .limit(50); // Get more matches to ensure we have variety from all tiers
+        .limit(30); // Get next 30 matches in play order
 
       if (upcomingError) {
         console.error('Upcoming matches error:', upcomingError);
@@ -243,6 +243,7 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
         fixture.home_team && fixture.away_team
       );
       
+      // Process upcoming matches in play order (already sorted by scheduled_at)
       const validUpcomingMatches = (upcomingData || [])
         .filter(fixture => fixture.home_team && fixture.away_team)
         .map(fixture => {
@@ -254,41 +255,27 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
           return { ...fixture, odds };
         });
 
-      // Get balanced representation from all tiers (4 matches from each tier)
-      const balancedUpcomingMatches: Fixture[] = [];
+      // Show matches in exact play order (no balancing needed - they're already in tier rotation order)
+      const playOrderMatches = validUpcomingMatches.slice(0, 20);
+
+      // Group by tier for statistics
       const matchesByTier: { [key: number]: Fixture[] } = {};
-      
-      // Group matches by tier
-      validUpcomingMatches.forEach(match => {
+      playOrderMatches.forEach(match => {
         const tier = match.home_team.tier;
         if (!matchesByTier[tier]) {
           matchesByTier[tier] = [];
         }
         matchesByTier[tier].push(match);
       });
-      
-      // Take up to 4 matches from each tier
-      for (let tier = 1; tier <= 5; tier++) {
-        const tierMatches = matchesByTier[tier] || [];
-        balancedUpcomingMatches.push(...tierMatches.slice(0, 4));
-      }
-      
-      // If we don't have enough balanced matches, fill with remaining matches
-      if (balancedUpcomingMatches.length < 20) {
-        const remainingMatches = validUpcomingMatches.filter(match => 
-          !balancedUpcomingMatches.some(balanced => balanced.id === match.id)
-        );
-        balancedUpcomingMatches.push(...remainingMatches.slice(0, 20 - balancedUpcomingMatches.length));
-      }
 
       console.log('Valid live matches:', validLiveMatches.length);
-      console.log('Valid upcoming matches:', balancedUpcomingMatches.length);
-      console.log('Matches by tier:', Object.keys(matchesByTier).map(tier => `T${tier}: ${matchesByTier[parseInt(tier)].length}`).join(', '));
+      console.log('Play order matches:', playOrderMatches.length);
+      console.log('Next 10 matches by tier:', playOrderMatches.slice(0, 10).map((m, i) => `#${i+1}: T${m.home_team.tier}`).join(', '));
 
-      setDebugInfo(`Live: ${validLiveMatches.length}, Upcoming: ${balancedUpcomingMatches.length} (balanced from ${validUpcomingMatches.length} total), Tiers: ${Object.keys(matchesByTier).join(',')}`);
+      setDebugInfo(`Live: ${validLiveMatches.length}, Next: ${playOrderMatches.length} in play order, Pattern: ${playOrderMatches.slice(0, 10).map(m => `T${m.home_team.tier}`).join('→')}`);
       
       setLiveMatches(validLiveMatches);
-      setUpcomingMatches(balancedUpcomingMatches);
+      setUpcomingMatches(playOrderMatches);
       setIsLoading(false);
     } catch (error) {
       console.error('Failed to load matches:', error);
@@ -363,7 +350,7 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
             <Calendar className="w-6 h-6 text-blue-400" />
             Upcoming Matches ({upcomingMatches.length})
             <span className="text-sm font-normal text-slate-400">
-              (Next 20 fixtures with live odds)
+              (In play order: T1→T2→T3→T4→T5→T1...)
             </span>
           </h2>
           
@@ -383,10 +370,13 @@ export default function MatchSelection({ onMatchSelect }: MatchSelectionProps) {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {upcomingMatches.slice(0, 12).map((fixture, index) => (
+              {upcomingMatches.slice(0, 20).map((fixture, index) => (
                 <div key={fixture.id} className="relative">
                   <div className="absolute -top-2 -left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full z-10">
                     #{index + 1}
+                  </div>
+                  <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full z-10">
+                    T{fixture.home_team.tier}
                   </div>
                   <MatchCard
                     fixture={fixture}
