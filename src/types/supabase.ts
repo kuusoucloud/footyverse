@@ -455,8 +455,11 @@ export type Database = {
           expected_return: string | null
           id: string
           injury_type: string
+          matches_at_injury: number | null
           occurred_at: string | null
           player_id: string | null
+          recovery_weeks_completed: number | null
+          recovery_weeks_needed: number | null
           severity: string
         }
         Insert: {
@@ -465,8 +468,11 @@ export type Database = {
           expected_return?: string | null
           id?: string
           injury_type: string
+          matches_at_injury?: number | null
           occurred_at?: string | null
           player_id?: string | null
+          recovery_weeks_completed?: number | null
+          recovery_weeks_needed?: number | null
           severity: string
         }
         Update: {
@@ -475,8 +481,11 @@ export type Database = {
           expected_return?: string | null
           id?: string
           injury_type?: string
+          matches_at_injury?: number | null
           occurred_at?: string | null
           player_id?: string | null
+          recovery_weeks_completed?: number | null
+          recovery_weeks_needed?: number | null
           severity?: string
         }
         Relationships: [
@@ -1404,6 +1413,20 @@ export type Database = {
           window_type: string
         }[]
       }
+      get_injury_recovery_status: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          injury_id: string
+          injury_type: string
+          matches_remaining: number
+          player_name: string
+          recovery_percentage: number
+          severity: string
+          team_name: string
+          weeks_completed: number
+          weeks_needed: number
+        }[]
+      }
       get_league_standings: {
         Args: { league_tier?: number }
         Returns: {
@@ -1433,7 +1456,7 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      process_injury_recoveries: {
+      process_match_based_injury_recoveries: {
         Args: Record<PropertyKey, never>
         Returns: number
       }

@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 import { corsHeaders } from "@shared/cors.ts";
-import { simulateMatch, processInjuryRecoveries, getTeamInjuryReport } from "@shared/match-simulator.ts";
+import { simulateMatch, processMatchBasedInjuryRecoveries, getTeamInjuryReport, getInjuryRecoveryStatus } from "@shared/match-simulator.ts";
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -16,11 +16,25 @@ Deno.serve(async (req) => {
     const { match_id, action } = await req.json().catch(() => ({ match_id: null, action: 'simulate' }));
 
     if (action === 'process_injuries') {
-      const recoveredCount = await processInjuryRecoveries(supabase);
+      const recoveredCount = await processMatchBasedInjuryRecoveries(supabase);
       return new Response(JSON.stringify({
         success: true,
-        message: `Processed injury recoveries: ${recoveredCount} players recovered`,
-        recovered_count: recoveredCount
+        message: `Processed match-based injury recoveries: ${recoveredCount} players recovered`,
+        recovered_count: recoveredCount,
+        recovery_system: 'match_based'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
+    if (action === 'injury_status') {
+      const injuryStatus = await getInjuryRecoveryStatus(supabase);
+      return new Response(JSON.stringify({
+        success: true,
+        injury_recovery_status: injuryStatus,
+        total_active_injuries: injuryStatus.length,
+        recovery_system: 'match_based'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -47,7 +61,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         home_team_injuries: homeReport,
-        away_team_injuries: awayReport
+        away_team_injuries: awayReport,
+        recovery_system: 'match_based'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -108,7 +123,8 @@ Deno.serve(async (req) => {
         success: true,
         message: `Match postponed due to insufficient players`,
         home_fit_players: fitHomePlayers.length,
-        away_fit_players: fitAwayPlayers.length
+        away_fit_players: fitAwayPlayers.length,
+        recovery_system: 'match_based'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -179,7 +195,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Match simulated successfully with injury system',
+      message: 'Match simulated successfully with match-based injury recovery system',
       match_result: {
         home_team: match.home_team.name,
         away_team: match.away_team.name,
@@ -187,7 +203,9 @@ Deno.serve(async (req) => {
         events: matchResult.events.length,
         injuries: matchResult.injuries.length,
         injury_details: matchResult.injuries
-      }
+      },
+      recovery_system: 'match_based',
+      recovery_note: 'Injuries now heal based on matches played (1 match = 1 week recovery)'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

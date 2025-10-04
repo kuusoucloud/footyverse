@@ -80,7 +80,13 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
           `).order('created_at', { ascending: false }).limit(20),
           supabase.from('season_progression').select('*').eq('season_status', 'active').order('tier'),
           supabase.from('global_season_status').select('*').eq('season_status', 'active').single(),
-          supabase.from('player_injuries').select('id, severity, player:players(name, team:teams(name))').eq('is_active', true).limit(50)
+          supabase.from('player_injuries').select(`
+            id, 
+            severity, 
+            recovery_weeks_needed,
+            recovery_weeks_completed,
+            player:players(name, team:teams(name))
+          `).eq('is_active', true).limit(50)
         ]);
 
         const playerStats = {
@@ -969,7 +975,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
                   Active Injuries
                 </CardTitle>
                 <CardDescription>
-                  Current player injuries across all teams. Players recover automatically based on injury severity.
+                  Current player injuries across all teams. Players recover based on matches played (1 match = 1 week recovery).
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1009,46 +1015,73 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
 
                     {/* Injury List */}
                     <div className="space-y-3">
-                      {activeInjuries.slice(0, 20).map((injury) => (
-                        <div key={injury.id} className={`rounded-lg p-4 border ${
-                          injury.severity === 'minor' ? 'bg-green-50 border-green-200' :
-                          injury.severity === 'moderate' ? 'bg-yellow-50 border-yellow-200' :
-                          injury.severity === 'major' ? 'bg-orange-50 border-orange-200' :
-                          'bg-red-50 border-red-200'
-                        }`}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                                <span className="text-sm font-bold text-gray-600">
-                                  {injury.player?.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'P'}
-                                </span>
+                      {activeInjuries.slice(0, 20).map((injury) => {
+                        const recoveryProgress = injury.recovery_weeks_completed / Math.max(injury.recovery_weeks_needed, 1) * 100;
+                        const matchesRemaining = Math.max(0, injury.recovery_weeks_needed - injury.recovery_weeks_completed);
+                        
+                        return (
+                          <div key={injury.id} className={`rounded-lg p-4 border ${
+                            injury.severity === 'minor' ? 'bg-green-50 border-green-200' :
+                            injury.severity === 'moderate' ? 'bg-yellow-50 border-yellow-200' :
+                            injury.severity === 'major' ? 'bg-orange-50 border-orange-200' :
+                            'bg-red-50 border-red-200'
+                          }`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                  <span className="text-sm font-bold text-gray-600">
+                                    {injury.player?.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || 'P'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-gray-800">
+                                    {injury.player?.name || 'Unknown Player'}
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    {injury.player?.team?.name || 'Unknown Team'}
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-semibold text-gray-800">
-                                  {injury.player?.name || 'Unknown Player'}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  {injury.player?.team?.name || 'Unknown Team'}
-                                </p>
+
+                              <div className="text-right">
+                                <Badge variant={
+                                  injury.severity === 'minor' ? 'secondary' :
+                                  injury.severity === 'moderate' ? 'default' :
+                                  injury.severity === 'major' ? 'destructive' :
+                                  'destructive'
+                                }>
+                                  {injury.severity.replace('_', ' ').toUpperCase()}
+                                </Badge>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {matchesRemaining} matches remaining
+                                </div>
                               </div>
                             </div>
-
-                            <div className="text-right">
-                              <Badge variant={
-                                injury.severity === 'minor' ? 'secondary' :
-                                injury.severity === 'moderate' ? 'default' :
-                                injury.severity === 'major' ? 'destructive' :
-                                'destructive'
-                              }>
-                                {injury.severity.replace('_', ' ').toUpperCase()}
-                              </Badge>
+                            
+                            {/* Recovery Progress Bar */}
+                            <div className="mt-3">
+                              <div className="flex justify-between text-xs text-gray-600 mb-1">
+                                <span>Recovery Progress</span>
+                                <span>{Math.round(recoveryProgress)}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className={`h-2 rounded-full transition-all duration-300 ${
+                                    injury.severity === 'minor' ? 'bg-green-500' :
+                                    injury.severity === 'moderate' ? 'bg-yellow-500' :
+                                    injury.severity === 'major' ? 'bg-orange-500' :
+                                    'bg-red-500'
+                                  }`}
+                                  style={{ width: `${Math.min(100, recoveryProgress)}%` }}
+                                ></div>
+                              </div>
                               <div className="text-xs text-gray-500 mt-1">
-                                Expected return: {new Date(injury.expected_return_date).toLocaleDateString()}
+                                {injury.recovery_weeks_completed}/{injury.recovery_weeks_needed} matches completed
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {activeInjuries.length > 20 && (

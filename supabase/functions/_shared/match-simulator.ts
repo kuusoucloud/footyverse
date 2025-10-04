@@ -215,15 +215,27 @@ export const simulateMatch = async (
   };
 };
 
-// Process injury recoveries (called periodically)
-export const processInjuryRecoveries = async (supabase: any): Promise<number> => {
+// Process injury recoveries (now match-based - handled automatically by triggers)
+export const processMatchBasedInjuryRecoveries = async (supabase: any): Promise<number> => {
   try {
-    const { data, error } = await supabase.rpc('process_injury_recoveries');
+    const { data, error } = await supabase.rpc('process_match_based_injury_recoveries');
     if (error) throw error;
     return data || 0;
   } catch (error) {
-    console.error('Error processing injury recoveries:', error);
+    console.error('Error processing match-based injury recoveries:', error);
     return 0;
+  }
+};
+
+// Get injury recovery status with match-based information
+export const getInjuryRecoveryStatus = async (supabase: any) => {
+  try {
+    const { data, error } = await supabase.rpc('get_injury_recovery_status');
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting injury recovery status:', error);
+    return [];
   }
 };
 
