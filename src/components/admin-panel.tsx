@@ -369,7 +369,7 @@ export default function AdminPanel() {
       await fetchStats();
     } catch (error) {
       console.error('Setup error:', error);
-      setMessage(`❌ Error: ${error.message}`);
+      setMessage(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -390,7 +390,7 @@ export default function AdminPanel() {
       await fetchStats();
     } catch (error) {
       console.error('Simulation error:', error);
-      setMessage(`❌ Error: ${error.message}`);
+      setMessage(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -411,7 +411,7 @@ export default function AdminPanel() {
       await fetchStats();
     } catch (error) {
       console.error('Season progression error:', error);
-      setMessage(`❌ Error: ${error.message}`);
+      setMessage(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -433,7 +433,7 @@ export default function AdminPanel() {
       await fetchStats();
     } catch (error) {
       console.error('Transfer simulation error:', error);
-      setMessage(`❌ Error: ${error.message}`);
+      setMessage(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -453,7 +453,7 @@ export default function AdminPanel() {
       setMessage(`✅ ${data.message}`);
     } catch (error) {
       console.error('Transfer window error:', error);
-      setMessage(`❌ Error: ${error.message}`);
+      setMessage(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
