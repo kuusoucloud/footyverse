@@ -31,7 +31,7 @@ interface AutomatedFootballAppProps {
   onTeamSelect?: (teamId: string) => void;
 }
 
-export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootballAppProps = {}) {
+export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: (teamId: string) => void }) {
   const [stats, setStats] = useState<any>({});
   const [liveMatches, setLiveMatches] = useState<any[]>([]);
   const [recentTransfers, setRecentTransfers] = useState<any[]>([]);
@@ -108,12 +108,13 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
         };
 
         setStats({
-          teams: teamsRes.data?.length || 0,
-          players: playerStats.total,
-          liveMatches: fixturesRes.data?.length || 0,
+          totalTeams: teamsRes.data?.length || 0,
+          totalTiers: 5,
+          totalPlayers: playerStats.total,
           fitPlayers: playerStats.fit,
           injuredPlayers: playerStats.injured,
-          retiredPlayers: playerStats.retired
+          retiredPlayers: playerStats.retired,
+          liveMatches: fixturesRes.data?.length || 0
         });
 
         setLiveMatches(fixturesRes.data || []);
@@ -209,37 +210,32 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="bg-white min-h-screen">
+      <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">
-              ⚽ Autonomous Football Universe
+            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+              <span className="text-blue-600">⚽</span>
+              Autonomous Football Universe
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 mt-2">
               Server-driven football ecosystem - same state for all clients worldwide!
             </p>
           </div>
-          
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-              <span className="text-sm font-medium">
-                {isConnected ? 'Connected' : 'Disconnected'}
-              </span>
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-green-600">Connected</span>
             </div>
-            
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${orchestrationStatus.is_running ? 'bg-blue-500 animate-pulse' : 'bg-green-500'}`} />
-              <span className="text-sm font-medium">
-                Server {orchestrationStatus.is_running ? 'Processing' : 'Active'}
-              </span>
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <span className="text-sm font-medium text-green-600">Server Active</span>
             </div>
           </div>
         </div>
 
-        {/* Stats Overview */}
+        {/* Stats Overview - Single instance */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -247,18 +243,20 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.teams}</div>
-              <p className="text-xs text-muted-foreground">Across 5 tiers</p>
+              <div className="text-2xl font-bold">{stats.totalTeams}</div>
+              <p className="text-xs text-muted-foreground">
+                Across {stats.totalTiers} tiers
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Players</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.players}</div>
+              <div className="text-2xl font-bold">{stats.totalPlayers}</div>
               <div className="text-xs text-muted-foreground space-y-1">
                 <div className="flex justify-between">
                   <span className="text-green-600">Fit:</span>
@@ -279,7 +277,9 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.liveMatches}</div>
-              <p className="text-xs text-muted-foreground">Currently playing</p>
+              <p className="text-xs text-muted-foreground">
+                Currently playing
+              </p>
             </CardContent>
           </Card>
 
@@ -289,21 +289,124 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {globalSeason?.season_number || 1}
-              </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-2xl font-bold">{globalSeason?.season_number || 1}</div>
+              <p className="text-xs text-muted-foreground">
                 {globalSeason?.tiers_completed || 0}/{globalSeason?.total_tiers || 5} tiers complete
-              </div>
-              {globalSeason?.tiers_completed >= globalSeason?.total_tiers && (
-                <Badge variant="destructive" className="mt-1 text-xs">
-                  Promotion Phase
-                </Badge>
-              )}
+              </p>
             </CardContent>
           </Card>
         </div>
 
+        {/* Global Season Status */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Global Season {globalSeason?.season_number || 1} Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Season Status:</span>
+                <Badge variant={globalSeason?.season_status === 'active' ? 'default' : 'secondary'}>
+                  {globalSeason?.season_status?.toUpperCase() || 'ACTIVE'}
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Tiers Completed:</span>
+                <span>{globalSeason?.tiers_completed || 0}/{globalSeason?.total_tiers || 5}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Season Standings */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5" />
+              Season Standings
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2 mb-6">
+              {[1, 2, 3, 4, 5].map((tier) => (
+                <Button
+                  key={tier}
+                  variant={selectedTier === tier ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedTier(tier)}
+                  className="flex-1"
+                >
+                  Tier {tier}
+                </Button>
+              ))}
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-2">Pos</th>
+                    <th className="text-left p-2">Team</th>
+                    <th className="text-center p-2">P</th>
+                    <th className="text-center p-2">W</th>
+                    <th className="text-center p-2">D</th>
+                    <th className="text-center p-2">L</th>
+                    <th className="text-center p-2">GF</th>
+                    <th className="text-center p-2">GA</th>
+                    <th className="text-center p-2">GD</th>
+                    <th className="text-center p-2">Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {standings
+                    .filter(team => team.tier === selectedTier)
+                    .sort((a, b) => {
+                      if (b.points !== a.points) return b.points - a.points;
+                      const aGD = a.goals_for - a.goals_against;
+                      const bGD = b.goals_for - b.goals_against;
+                      if (bGD !== aGD) return bGD - aGD;
+                      return b.goals_for - a.goals_for;
+                    })
+                    .map((team, index) => (
+                      <tr 
+                        key={team.id} 
+                        className={`border-b hover:bg-gray-50 cursor-pointer ${
+                          index < 2 ? 'bg-green-50' : 
+                          index >= standings.filter(t => t.tier === selectedTier).length - 3 ? 'bg-red-50' : ''
+                        }`}
+                        onClick={() => onTeamSelect?.(team.id)}
+                      >
+                        <td className="p-2 font-medium">{index + 1}</td>
+                        <td className="p-2">
+                          <div className="flex items-center gap-2">
+                            <img 
+                              src={team.logo_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${team.name}`}
+                              alt={team.name}
+                              className="w-6 h-6 rounded"
+                            />
+                            <span className="font-medium">{team.name}</span>
+                          </div>
+                        </td>
+                        <td className="text-center p-2">{team.matches_played}</td>
+                        <td className="text-center p-2">{team.wins}</td>
+                        <td className="text-center p-2">{team.draws}</td>
+                        <td className="text-center p-2">{team.losses}</td>
+                        <td className="text-center p-2">{team.goals_for}</td>
+                        <td className="text-center p-2">{team.goals_against}</td>
+                        <td className="text-center p-2">{team.goals_for - team.goals_against}</td>
+                        <td className="text-center p-2 font-bold">{team.points}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Navigation Tabs */}
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -315,166 +418,68 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
           </TabsList>
           
           <TabsContent value="overview" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Autonomous Football Universe */}
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Teams</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.teams}</div>
-                  <p className="text-xs text-muted-foreground">Across 5 tiers</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Players</CardTitle>
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.players}</div>
-                  <div className="text-xs text-muted-foreground space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-green-600">Fit:</span>
-                      <span>{stats.fitPlayers}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-red-600">Injured:</span>
-                      <span>{stats.injuredPlayers}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Live Matches</CardTitle>
-                  <Trophy className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.liveMatches}</div>
-                  <p className="text-xs text-muted-foreground">Currently playing</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Global Season</CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {globalSeason?.season_number || 1}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {globalSeason?.tiers_completed || 0}/{globalSeason?.total_tiers || 5} tiers complete
-                  </div>
-                  {globalSeason?.tiers_completed >= globalSeason?.total_tiers && (
-                    <Badge variant="destructive" className="mt-1 text-xs">
-                      Promotion Phase
-                    </Badge>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Global Season Status */}
-            {globalSeason && (
-              <Card className="mb-6">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5" />
-                    Global Season {globalSeason.season_number} Status
+                    <Trophy className="h-5 w-5 text-blue-600" />
+                    Autonomous Football Universe
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span>Season Status:</span>
-                      <Badge variant={
-                        globalSeason.season_status === 'active' ? 'secondary' :
-                        globalSeason.season_status === 'promotion_phase' ? 'destructive' : 'default'
-                      }>
-                        {globalSeason.season_status.replace('_', ' ').toUpperCase()}
-                      </Badge>
+                  <div className="space-y-3">
+                    <div className="flex gap-2 mb-4">
+                      {[1, 2, 3, 4, 5].map((tier) => (
+                        <Button
+                          key={tier}
+                          variant={selectedTier === tier ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedTier(tier)}
+                          className="flex-1"
+                        >
+                          Tier {tier}
+                        </Button>
+                      ))}
                     </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Tiers Completed:</span>
-                        <span>{globalSeason.tiers_completed}/{globalSeason.total_tiers}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${(globalSeason.tiers_completed / globalSeason.total_tiers) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    {globalSeason.tiers_completed >= globalSeason.total_tiers && (
-                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <div className="flex items-center gap-2 text-yellow-800">
-                          <AlertCircle className="w-4 h-4" />
-                          <span className="font-semibold">Season Ending!</span>
-                        </div>
-                        <div className="text-sm text-yellow-700 mt-1">
-                          All tiers have completed their matches. Promotion/relegation will be processed automatically.
-                          Top 3 teams from each tier (except Tier 1) will be promoted, bottom 3 will be relegated.
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Trophy className="w-5 h-5" />
-                    Autonomous Football Universe
-                  </CardTitle>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((tier) => (
-                      <Button
-                        key={tier}
-                        variant={selectedTier === tier ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setSelectedTier(tier)}
-                      >
-                        Tier {tier}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="font-semibold text-gray-700 mb-4">⚽ Match Simulation</h3>
-                    <ul className="text-sm text-gray-600 space-y-1">
+                    <ul className="text-sm text-gray-600 space-y-2">
                       <li>• Server-driven match simulation</li>
                       <li>• Automatic fixture generation</li>
                       <li>• Synchronized across all clients</li>
                       <li>• Consistent league progression</li>
                     </ul>
                   </div>
-                  
-                  <div>
-                    <h3 className="font-semibold text-gray-700 mb-4">💰 Transfer System</h3>
-                    <ul className="text-sm text-gray-600 space-y-1">
-                      <li>• Server-controlled transfers</li>
-                      <li>• Global market consistency</li>
-                      <li>• Same prices for all clients</li>
-                      <li>• Synchronized player movements</li>
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              {/* Transfer System */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-yellow-600" />
+                    Transfer System
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="text-sm text-gray-600 space-y-2">
+                    <li>• Server-controlled transfers</li>
+                    <li>• Global market consistency</li>
+                    <li>• Same prices for all clients</li>
+                    <li>• Synchronized player movements</li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Separator className="my-6" />
+            
+            <div className="bg-blue-50 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-800 mb-2">🌍 Global Synchronization</h4>
+              <p className="text-sm text-blue-700">
+                All match results, transfers, and league standings are synchronized server-side. 
+                Every client sees the exact same football universe state in real-time.
+              </p>
+            </div>
           </TabsContent>
           
           <TabsContent value="matches" className="mt-6">
