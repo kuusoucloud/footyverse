@@ -818,12 +818,7 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
                           </Badge>
                         </div>
                         <p className="text-slate-300 text-sm mb-3">
-                          Tactical formation setup for{" "}
-                          {matchData.home_formation.tactical_style.replace(
-                            "_",
-                            " ",
-                          )}{" "}
-                          play
+                          Tactical formation setup for {matchData.home_formation.tactical_style.replace('_', ' ')} play
                         </p>
                       </div>
 
