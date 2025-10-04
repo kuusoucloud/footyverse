@@ -80,18 +80,18 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
           supabase.from('players').select('id, injury_status'),
           supabase.from('fixtures').select(`
             *,
-            home_team:home_team_id(name, logo_url, primary_color),
-            away_team:away_team_id(name, logo_url, primary_color)
+            home_team:home_team_id(name, crest_url, primary_color),
+            away_team:away_team_id(name, crest_url, primary_color)
           `).eq('status', 'live').limit(10),
           supabase.from('team_standings').select(`
             *,
-            team:teams(name, tier, elo, primary_color, secondary_color, logo_url)
+            team:team_id(name, tier, elo, primary_color, secondary_color, crest_url)
           `).order('points', { ascending: false }).limit(100),
           supabase.from('transfers').select(`
             *,
             player:players(name, position, age, overall_rating),
-            from_team:from_team_id(name, logo_url, primary_color),
-            to_team:to_team_id(name, logo_url, primary_color)
+            from_team:from_team_id(name, crest_url, primary_color),
+            to_team:to_team_id(name, crest_url, primary_color)
           `).order('created_at', { ascending: false }).limit(20),
           supabase.from('season_progression').select('*').eq('season_status', 'active').order('tier'),
           supabase.from('global_season_status').select('*').eq('season_status', 'active').single(),
@@ -444,7 +444,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2">
                             <img 
-                              src={match.home_team.logo_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.home_team.name}`}
+                              src={match.home_team.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.home_team.name}`}
                               alt={match.home_team.name}
                               className="w-8 h-8 rounded"
                             />
@@ -453,7 +453,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                           <span className="text-slate-400">vs</span>
                           <div className="flex items-center gap-2">
                             <img 
-                              src={match.away_team.logo_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.away_team.name}`}
+                              src={match.away_team.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${match.away_team.name}`}
                               alt={match.away_team.name}
                               className="w-8 h-8 rounded"
                             />
@@ -520,41 +520,41 @@ export default function AutomatedFootballApp({ onTeamSelect }: { onTeamSelect?: 
                       </thead>
                       <tbody>
                         {standings
-                          .filter(team => team.tier === selectedTier)
+                          .filter(team => team.team?.tier === selectedTier)
                           .sort((a, b) => {
                             if (b.points !== a.points) return b.points - a.points;
-                            const aGD = a.goals_for - a.goals_against;
-                            const bGD = b.goals_for - b.goals_against;
+                            const aGD = a.gf - a.ga;
+                            const bGD = b.gf - b.ga;
                             if (bGD !== aGD) return bGD - aGD;
-                            return b.goals_for - a.goals_for;
+                            return b.gf - a.gf;
                           })
                           .map((team, index) => (
                             <tr 
                               key={team.id} 
                               className={`glass-row cursor-pointer transition-all duration-300 ${
                                 index < 2 ? 'bg-green-400/10 border-l-2 border-green-400' : 
-                                index >= standings.filter(t => t.tier === selectedTier).length - 3 ? 'bg-red-400/10 border-l-2 border-red-400' : ''
+                                index >= standings.filter(t => t.team?.tier === selectedTier).length - 3 ? 'bg-red-400/10 border-l-2 border-red-400' : ''
                               }`}
-                              onClick={() => onTeamSelect?.(team.id)}
+                              onClick={() => onTeamSelect?.(team.team_id)}
                             >
                               <td className="p-3 font-medium text-white">{index + 1}</td>
                               <td className="p-3">
                                 <div className="flex items-center gap-2">
                                   <img 
-                                    src={team.logo_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${team.name}`}
-                                    alt={team.name}
+                                    src={team.team?.crest_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${team.team?.name}`}
+                                    alt={team.team?.name}
                                     className="w-6 h-6 rounded"
                                   />
-                                  <span className="font-medium text-white">{team.name}</span>
+                                  <span className="font-medium text-white">{team.team?.name}</span>
                                 </div>
                               </td>
-                              <td className="text-center p-3 text-slate-300">{team.matches_played}</td>
-                              <td className="text-center p-3 text-slate-300">{team.wins}</td>
-                              <td className="text-center p-3 text-slate-300">{team.draws}</td>
-                              <td className="text-center p-3 text-slate-300">{team.losses}</td>
-                              <td className="text-center p-3 text-slate-300">{team.goals_for}</td>
-                              <td className="text-center p-3 text-slate-300">{team.goals_against}</td>
-                              <td className="text-center p-3 text-slate-300">{team.goals_for - team.goals_against}</td>
+                              <td className="text-center p-3 text-slate-300">{team.played}</td>
+                              <td className="text-center p-3 text-slate-300">{team.won}</td>
+                              <td className="text-center p-3 text-slate-300">{team.drawn}</td>
+                              <td className="text-center p-3 text-slate-300">{team.lost}</td>
+                              <td className="text-center p-3 text-slate-300">{team.gf}</td>
+                              <td className="text-center p-3 text-slate-300">{team.ga}</td>
+                              <td className="text-center p-3 text-slate-300">{team.gf - team.ga}</td>
                               <td className="text-center p-3 font-bold text-white">{team.points}</td>
                             </tr>
                           ))}
