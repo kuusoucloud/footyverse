@@ -855,7 +855,7 @@ export default function AutomatedFootballApp({ onTeamSelect }: AutomatedFootball
                   Season Progression
                 </CardTitle>
                 <CardDescription>
-                  Track season progress across all tiers. 1 season = 35 matches per team.
+                  Track season progress across all tiers. 1 season = 38 matches per team.
                 </CardDescription>
               </CardHeader>
               <CardContent>
