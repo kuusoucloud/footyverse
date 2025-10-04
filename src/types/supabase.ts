@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      admins: {
+        Row: {
+          created_at: string | null
+          id: number
+          password_hash: string
+          role: string | null
+          username: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          password_hash: string
+          role?: string | null
+          username: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          password_hash?: string
+          role?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
       elo_history: {
         Row: {
           after_elo: number
