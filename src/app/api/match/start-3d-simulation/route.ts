@@ -356,8 +356,17 @@ class Match3DSimulator {
   }
 }
 
-// Global simulation instances
+// Global simulation instances - using a module-level Map
 const activeSimulations = new Map<string, Match3DSimulator>();
+
+// Export a function to access simulations from other routes
+export function getActiveSimulation(fixtureId: string) {
+  return activeSimulations.get(fixtureId);
+}
+
+export function setActiveSimulation(fixtureId: string, simulator: Match3DSimulator) {
+  activeSimulations.set(fixtureId, simulator);
+}
 
 export async function POST(request: NextRequest) {
   try {
