@@ -110,36 +110,78 @@ function SoccerField({
   ) => {
     const positions: { [key: string]: { x: number; y: number } } = {};
 
-    // Sort players to ensure goalkeeper is first, then by position priority
-    const sortedPlayers = [...players].sort((a, b) => {
-      const positionOrder = {
-        'GK': 0,
-        'CB': 1, 'LB': 2, 'RB': 3, 'LWB': 4, 'RWB': 5,
-        'CDM': 6, 'CM': 7, 'CAM': 8, 'LM': 9, 'RM': 10,
-        'LW': 11, 'RW': 12, 'CF': 13, 'ST': 14
-      };
-      
-      const aOrder = positionOrder[a.position as keyof typeof positionOrder] ?? 99;
-      const bOrder = positionOrder[b.position as keyof typeof positionOrder] ?? 99;
-      
-      if (aOrder !== bOrder) return aOrder - bOrder;
-      return (b.overall_rating || 0) - (a.overall_rating || 0);
-    });
-
     if (formation && formation.positions) {
-      // Use formation positions
+      // Match players to formation positions based on their roles
       const formationPositions = formation.positions.map((pos) => ({
+        ...pos,
         x: isHome ? pos.x : 100 - pos.x, // Mirror for away team
         y: isHome ? pos.y : 100 - pos.y, // Mirror for away team
       }));
 
-      sortedPlayers.slice(0, 11).forEach((player, index) => {
-        if (formationPositions[index]) {
-          positions[player.id] = formationPositions[index];
+      // Group players by position type for better matching
+      const playersByPosition = {
+        GK: players.filter(p => p.position === 'GK'),
+        DEF: players.filter(p => ['CB', 'LB', 'RB', 'LWB', 'RWB'].includes(p.position)),
+        MID: players.filter(p => ['CDM', 'CM', 'CAM', 'LM', 'RM'].includes(p.position)),
+        ATT: players.filter(p => ['LW', 'RW', 'CF', 'ST'].includes(p.position))
+      };
+
+      // Sort each group by rating
+      Object.keys(playersByPosition).forEach(key => {
+        playersByPosition[key as keyof typeof playersByPosition].sort((a, b) => 
+          (b.overall_rating || 0) - (a.overall_rating || 0)
+        );
+      });
+
+      const assignedPlayers = new Set<string>();
+      
+      // Assign players to formation positions based on role matching
+      formationPositions.forEach((formationPos, index) => {
+        let selectedPlayer: Player | null = null;
+        
+        // Match formation role to player position
+        const role = formationPos.role.toLowerCase();
+        
+        if (role.includes('goalkeeper') || role.includes('gk')) {
+          selectedPlayer = playersByPosition.GK.find(p => !assignedPlayers.has(p.id)) || null;
+        } else if (role.includes('defender') || role.includes('centre-back') || role.includes('full-back') || role.includes('wing-back')) {
+          selectedPlayer = playersByPosition.DEF.find(p => !assignedPlayers.has(p.id)) || null;
+        } else if (role.includes('midfielder') || role.includes('central-midfielder') || role.includes('attacking-midfielder') || role.includes('defensive-midfielder')) {
+          selectedPlayer = playersByPosition.MID.find(p => !assignedPlayers.has(p.id)) || null;
+        } else if (role.includes('forward') || role.includes('striker') || role.includes('winger') || role.includes('attacker')) {
+          selectedPlayer = playersByPosition.ATT.find(p => !assignedPlayers.has(p.id)) || null;
+        }
+        
+        // Fallback: if no specific match found, use best available player
+        if (!selectedPlayer) {
+          const allAvailable = [...playersByPosition.GK, ...playersByPosition.DEF, ...playersByPosition.MID, ...playersByPosition.ATT]
+            .filter(p => !assignedPlayers.has(p.id))
+            .sort((a, b) => (b.overall_rating || 0) - (a.overall_rating || 0));
+          selectedPlayer = allAvailable[0] || null;
+        }
+        
+        if (selectedPlayer) {
+          positions[selectedPlayer.id] = { x: formationPos.x, y: formationPos.y };
+          assignedPlayers.add(selectedPlayer.id);
         }
       });
     } else {
-      // Fall back to default 4-4-2 positions
+      // Fall back to default 4-4-2 positions with proper player sorting
+      const sortedPlayers = [...players].sort((a, b) => {
+        const positionOrder = {
+          'GK': 0,
+          'CB': 1, 'LB': 2, 'RB': 3, 'LWB': 4, 'RWB': 5,
+          'CDM': 6, 'CM': 7, 'CAM': 8, 'LM': 9, 'RM': 10,
+          'LW': 11, 'RW': 12, 'CF': 13, 'ST': 14
+        };
+        
+        const aOrder = positionOrder[a.position as keyof typeof positionOrder] ?? 99;
+        const bOrder = positionOrder[b.position as keyof typeof positionOrder] ?? 99;
+        
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return (b.overall_rating || 0) - (a.overall_rating || 0);
+      });
+
       const defaultPositions = isHome
         ? [
             { x: 10, y: 50 }, // GK
@@ -178,8 +220,16 @@ function SoccerField({
     return positions;
   };
 
-  const homePositions = getPlayerPositions(homePlayers, homeFormation, true);
-  const awayPositions = getPlayerPositions(awayPlayers, awayFormation, false);
+  const homePositions = getPlayerPositions(matchData.home_players, matchData.home_formation, true);
+  const awayPositions = getPlayerPositions(matchData.away_players, matchData.away_formation, false);
+
+  // Get players that have been assigned positions
+  const getAssignedPlayers = (players: Player[], positions: { [key: string]: { x: number; y: number } }) => {
+    return players.filter(player => positions[player.id]);
+  };
+
+  const assignedHomePlayers = getAssignedPlayers(matchData.home_players, homePositions);
+  const assignedAwayPlayers = getAssignedPlayers(matchData.away_players, awayPositions);
 
   // Sort players for consistent rendering (same logic as in getPlayerPositions)
   const sortPlayers = (players: Player[]) => {
@@ -280,7 +330,7 @@ function SoccerField({
       </svg>
 
       {/* Home team players */}
-      {sortedHomePlayers.slice(0, 11).map((player) => {
+      {assignedHomePlayers.map((player) => {
         const position = homePositions[player.id];
         if (!position) return null;
 
@@ -307,7 +357,7 @@ function SoccerField({
       })}
 
       {/* Away team players */}
-      {sortedAwayPlayers.slice(0, 11).map((player) => {
+      {assignedAwayPlayers.map((player) => {
         const position = awayPositions[player.id];
         if (!position) return null;
 
