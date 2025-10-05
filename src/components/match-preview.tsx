@@ -51,6 +51,7 @@ interface Formation {
   name: string;
   display_name: string;
   formation_code: string;
+  description?: string | null;
   positions: Array<{
     position: string;
     x: number;
@@ -898,7 +899,7 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
                         </div>
                         <p className="text-slate-300 text-sm mb-3">
                           {matchData.away_formation.description ||
-                            "Tactical formation setup"}
+                            `Tactical formation setup for ${matchData.away_formation.tactical_style.replace('_', ' ')} play`}
                         </p>
                       </div>
 
