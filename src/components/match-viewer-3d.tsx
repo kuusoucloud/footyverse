@@ -937,8 +937,7 @@ export default function MatchViewer3D({ fixtureId }: MatchViewer3DProps) {
         gl={{ 
           antialias: true,
           alpha: false,
-          powerPreference: "high-performance",
-          shadowMap: true
+          powerPreference: "high-performance"
         }}
       >
         {/* Advanced lighting setup */}
