@@ -110,6 +110,22 @@ function SoccerField({
   ) => {
     const positions: { [key: string]: { x: number; y: number } } = {};
 
+    // Sort players to ensure goalkeeper is first, then by position priority
+    const sortedPlayers = [...players].sort((a, b) => {
+      const positionOrder = {
+        'GK': 0,
+        'CB': 1, 'LB': 2, 'RB': 3, 'LWB': 4, 'RWB': 5,
+        'CDM': 6, 'CM': 7, 'CAM': 8, 'LM': 9, 'RM': 10,
+        'LW': 11, 'RW': 12, 'CF': 13, 'ST': 14
+      };
+      
+      const aOrder = positionOrder[a.position as keyof typeof positionOrder] ?? 99;
+      const bOrder = positionOrder[b.position as keyof typeof positionOrder] ?? 99;
+      
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return (b.overall_rating || 0) - (a.overall_rating || 0);
+    });
+
     if (formation && formation.positions) {
       // Use formation positions
       const formationPositions = formation.positions.map((pos) => ({
@@ -117,7 +133,7 @@ function SoccerField({
         y: isHome ? pos.y : 100 - pos.y, // Mirror for away team
       }));
 
-      players.slice(0, 11).forEach((player, index) => {
+      sortedPlayers.slice(0, 11).forEach((player, index) => {
         if (formationPositions[index]) {
           positions[player.id] = formationPositions[index];
         }
@@ -152,7 +168,7 @@ function SoccerField({
             { x: 30, y: 35 }, // ST
           ];
 
-      players.slice(0, 11).forEach((player, index) => {
+      sortedPlayers.slice(0, 11).forEach((player, index) => {
         if (defaultPositions[index]) {
           positions[player.id] = defaultPositions[index];
         }
@@ -164,6 +180,27 @@ function SoccerField({
 
   const homePositions = getPlayerPositions(homePlayers, homeFormation, true);
   const awayPositions = getPlayerPositions(awayPlayers, awayFormation, false);
+
+  // Sort players for consistent rendering (same logic as in getPlayerPositions)
+  const sortPlayers = (players: Player[]) => {
+    return [...players].sort((a, b) => {
+      const positionOrder = {
+        'GK': 0,
+        'CB': 1, 'LB': 2, 'RB': 3, 'LWB': 4, 'RWB': 5,
+        'CDM': 6, 'CM': 7, 'CAM': 8, 'LM': 9, 'RM': 10,
+        'LW': 11, 'RW': 12, 'CF': 13, 'ST': 14
+      };
+      
+      const aOrder = positionOrder[a.position as keyof typeof positionOrder] ?? 99;
+      const bOrder = positionOrder[b.position as keyof typeof positionOrder] ?? 99;
+      
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return (b.overall_rating || 0) - (a.overall_rating || 0);
+    });
+  };
+
+  const sortedHomePlayers = sortPlayers(homePlayers);
+  const sortedAwayPlayers = sortPlayers(awayPlayers);
 
   return (
     <div className="relative w-full h-96 bg-gradient-to-b from-green-400 to-green-500 rounded-lg overflow-hidden">
@@ -243,7 +280,7 @@ function SoccerField({
       </svg>
 
       {/* Home team players */}
-      {homePlayers.slice(0, 11).map((player) => {
+      {sortedHomePlayers.slice(0, 11).map((player) => {
         const position = homePositions[player.id];
         if (!position) return null;
 
@@ -270,7 +307,7 @@ function SoccerField({
       })}
 
       {/* Away team players */}
-      {awayPlayers.slice(0, 11).map((player) => {
+      {sortedAwayPlayers.slice(0, 11).map((player) => {
         const position = awayPositions[player.id];
         if (!position) return null;
 
