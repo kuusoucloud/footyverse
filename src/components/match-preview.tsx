@@ -561,21 +561,56 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
           .order("overall_rating", { ascending: false }),
       ]);
 
-      // Sort players by position priority (GK first, then by rating within each position)
-      const sortPlayersByPosition = (players: Player[]) => {
+      // Sort players by position priority and get starting XI that matches field view
+      const getStartingXI = (players: Player[]) => {
         const positionOrder = { 'GK': 0, 'DF': 1, 'MF': 2, 'FW': 3 };
         
-        return [...players].sort((a, b) => {
-          const aOrder = positionOrder[a.position as keyof typeof positionOrder] ?? 99;
-          const bOrder = positionOrder[b.position as keyof typeof positionOrder] ?? 99;
-          
-          if (aOrder !== bOrder) return aOrder - bOrder;
-          return (b.overall_rating || 0) - (a.overall_rating || 0);
-        });
+        // Group players by position
+        const playersByPosition = {
+          GK: players.filter(p => p.position === 'GK').sort((a, b) => (b.overall_rating || 0) - (a.overall_rating || 0)),
+          DF: players.filter(p => p.position === 'DF').sort((a, b) => (b.overall_rating || 0) - (a.overall_rating || 0)),
+          MF: players.filter(p => p.position === 'MF').sort((a, b) => (b.overall_rating || 0) - (a.overall_rating || 0)),
+          FW: players.filter(p => p.position === 'FW').sort((a, b) => (b.overall_rating || 0) - (a.overall_rating || 0))
+        };
+
+        // Select starting XI: 1 GK + best 10 outfield players
+        const startingXI = [
+          ...playersByPosition.GK.slice(0, 1), // Only 1 goalkeeper
+          ...playersByPosition.DF.slice(0, 4), // Up to 4 defenders
+          ...playersByPosition.MF.slice(0, 4), // Up to 4 midfielders  
+          ...playersByPosition.FW.slice(0, 2)  // Up to 2 forwards
+        ];
+
+        // If we don't have enough players in specific positions, fill with best available
+        if (startingXI.length < 11) {
+          const remaining = players
+            .filter(p => !startingXI.find(s => s.id === p.id))
+            .sort((a, b) => (b.overall_rating || 0) - (a.overall_rating || 0))
+            .slice(0, 11 - startingXI.length);
+          startingXI.push(...remaining);
+        }
+
+        return startingXI.slice(0, 11);
       };
 
-      const sortedHomePlayers = sortPlayersByPosition(homePlayersData.data || []);
-      const sortedAwayPlayers = sortPlayersByPosition(awayPlayersData.data || []);
+      const getSortedSquad = (players: Player[]) => {
+        const startingXI = getStartingXI(players);
+        const substitutes = players
+          .filter(p => !startingXI.find(s => s.id === p.id))
+          .sort((a, b) => {
+            const positionOrder = { 'GK': 0, 'DF': 1, 'MF': 2, 'FW': 3 };
+            const aOrder = positionOrder[a.position as keyof typeof positionOrder] ?? 99;
+            const bOrder = positionOrder[b.position as keyof typeof positionOrder] ?? 99;
+            
+            if (aOrder !== bOrder) return aOrder - bOrder;
+            return (b.overall_rating || 0) - (a.overall_rating || 0);
+          });
+
+        return [...startingXI, ...substitutes];
+      };
+
+      const sortedHomePlayers = getSortedSquad(homePlayersData.data || []);
+      const sortedAwayPlayers = getSortedSquad(awayPlayersData.data || []);
 
       // Get recent form (last 5 matches for each team)
       const [homeFormData, awayFormData] = await Promise.all([
@@ -1131,12 +1166,12 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
                 </CardHeader>
                 <CardContent>
                   {/* Starting XI */}
-                  <div className="mb-6">
+                  <div>
                     <h4 className="text-lg font-semibold text-white mb-3 flex items-center">
                       <Users className="w-4 h-4 mr-2" />
-                      Starting XI
+                      Starting XI (11)
                     </h4>
-                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
                       {matchData.home_players.slice(0, 11).map((player) => (
                         <PlayerCard
                           key={player.id}
@@ -1180,12 +1215,12 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
                 </CardHeader>
                 <CardContent>
                   {/* Starting XI */}
-                  <div className="mb-6">
+                  <div>
                     <h4 className="text-lg font-semibold text-white mb-3 flex items-center">
                       <Users className="w-4 h-4 mr-2" />
-                      Starting XI
+                      Starting XI (11)
                     </h4>
-                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
                       {matchData.away_players.slice(0, 11).map((player) => (
                         <PlayerCard
                           key={player.id}
