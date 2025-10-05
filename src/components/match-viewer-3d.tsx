@@ -147,7 +147,7 @@ function Player3D({ player, teamColor, isHome }: {
     
     // Bobbing animation when running
     if (isRunning) {
-      meshRef.current.position.y += Math.sin(state.clock * 10) * 0.1;
+      meshRef.current.position.y += Math.sin(state.clock.elapsedTime * 10) * 0.1;
     }
   });
 
