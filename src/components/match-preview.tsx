@@ -139,17 +139,30 @@ function SoccerField({
       formationPositions.forEach((formationPos, index) => {
         let selectedPlayer: Player | null = null;
         
-        // Match formation role to player position
+        // Match formation role to player position - more flexible matching
         const role = formationPos.role.toLowerCase();
         
         if (role.includes('goalkeeper') || role.includes('gk')) {
           selectedPlayer = playersByPosition.GK.find(p => !assignedPlayers.has(p.id)) || null;
-        } else if (role.includes('defender') || role.includes('centre-back') || role.includes('full-back') || role.includes('wing-back')) {
+        } else if (role.includes('defender') || role.includes('defence') || role.includes('back') || role.includes('cb') || role.includes('lb') || role.includes('rb')) {
           selectedPlayer = playersByPosition.DF.find(p => !assignedPlayers.has(p.id)) || null;
-        } else if (role.includes('midfielder') || role.includes('central-midfielder') || role.includes('attacking-midfielder') || role.includes('defensive-midfielder')) {
+        } else if (role.includes('midfielder') || role.includes('midfield') || role.includes('mid') || role.includes('cm') || role.includes('cdm') || role.includes('cam')) {
           selectedPlayer = playersByPosition.MF.find(p => !assignedPlayers.has(p.id)) || null;
-        } else if (role.includes('forward') || role.includes('striker') || role.includes('winger') || role.includes('attacker')) {
+        } else if (role.includes('forward') || role.includes('striker') || role.includes('winger') || role.includes('attacker') || role.includes('attack') || role.includes('st') || role.includes('lw') || role.includes('rw')) {
           selectedPlayer = playersByPosition.FW.find(p => !assignedPlayers.has(p.id)) || null;
+        } else {
+          // If role doesn't match any category, try to infer from position on field
+          // Positions closer to goal (lower x for home, higher x for away) are more defensive
+          const isDefensivePosition = isHome ? formationPos.x < 40 : formationPos.x > 60;
+          const isMidfieldPosition = isHome ? (formationPos.x >= 40 && formationPos.x < 70) : (formationPos.x <= 60 && formationPos.x > 30);
+          
+          if (isDefensivePosition && formationPos.x !== 10 && formationPos.x !== 90) { // Not goalkeeper position
+            selectedPlayer = playersByPosition.DF.find(p => !assignedPlayers.has(p.id)) || null;
+          } else if (isMidfieldPosition) {
+            selectedPlayer = playersByPosition.MF.find(p => !assignedPlayers.has(p.id)) || null;
+          } else {
+            selectedPlayer = playersByPosition.FW.find(p => !assignedPlayers.has(p.id)) || null;
+          }
         }
         
         // Fallback: if no specific match found, use best available player
