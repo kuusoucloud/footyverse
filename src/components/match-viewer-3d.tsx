@@ -223,14 +223,14 @@ function Player3D({ player, teamColor, isHome }: {
     
     // Performance-based glow effect
     if (player.matchRating > 8) {
-      bodyRef.current.material.emissive.setHex(0x004400);
-      bodyRef.current.material.emissiveIntensity = 0.2;
+      (bodyRef.current.material as THREE.MeshStandardMaterial).emissive.setHex(0x004400);
+      (bodyRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.2;
     } else if (player.matchRating < 4) {
-      bodyRef.current.material.emissive.setHex(0x440000);
-      bodyRef.current.material.emissiveIntensity = 0.1;
+      (bodyRef.current.material as THREE.MeshStandardMaterial).emissive.setHex(0x440000);
+      (bodyRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.1;
     } else {
-      bodyRef.current.material.emissive.setHex(0x000000);
-      bodyRef.current.material.emissiveIntensity = 0;
+      (bodyRef.current.material as THREE.MeshStandardMaterial).emissive.setHex(0x000000);
+      (bodyRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = 0;
     }
     
     previousPosition.current.copy(player.currentPos);
