@@ -118,12 +118,12 @@ function SoccerField({
         y: isHome ? pos.y : 100 - pos.y, // Mirror for away team
       }));
 
-      // Group players by position type for better matching
+      // Group players by position type using the actual database values
       const playersByPosition = {
         GK: players.filter(p => p.position === 'GK'),
-        DEF: players.filter(p => ['CB', 'LB', 'RB', 'LWB', 'RWB'].includes(p.position)),
-        MID: players.filter(p => ['CDM', 'CM', 'CAM', 'LM', 'RM'].includes(p.position)),
-        ATT: players.filter(p => ['LW', 'RW', 'CF', 'ST'].includes(p.position))
+        DF: players.filter(p => p.position === 'DF'),
+        MF: players.filter(p => p.position === 'MF'),
+        FW: players.filter(p => p.position === 'FW')
       };
 
       // Sort each group by rating
@@ -145,16 +145,16 @@ function SoccerField({
         if (role.includes('goalkeeper') || role.includes('gk')) {
           selectedPlayer = playersByPosition.GK.find(p => !assignedPlayers.has(p.id)) || null;
         } else if (role.includes('defender') || role.includes('centre-back') || role.includes('full-back') || role.includes('wing-back')) {
-          selectedPlayer = playersByPosition.DEF.find(p => !assignedPlayers.has(p.id)) || null;
+          selectedPlayer = playersByPosition.DF.find(p => !assignedPlayers.has(p.id)) || null;
         } else if (role.includes('midfielder') || role.includes('central-midfielder') || role.includes('attacking-midfielder') || role.includes('defensive-midfielder')) {
-          selectedPlayer = playersByPosition.MID.find(p => !assignedPlayers.has(p.id)) || null;
+          selectedPlayer = playersByPosition.MF.find(p => !assignedPlayers.has(p.id)) || null;
         } else if (role.includes('forward') || role.includes('striker') || role.includes('winger') || role.includes('attacker')) {
-          selectedPlayer = playersByPosition.ATT.find(p => !assignedPlayers.has(p.id)) || null;
+          selectedPlayer = playersByPosition.FW.find(p => !assignedPlayers.has(p.id)) || null;
         }
         
         // Fallback: if no specific match found, use best available player
         if (!selectedPlayer) {
-          const allAvailable = [...playersByPosition.GK, ...playersByPosition.DEF, ...playersByPosition.MID, ...playersByPosition.ATT]
+          const allAvailable = [...playersByPosition.GK, ...playersByPosition.DF, ...playersByPosition.MF, ...playersByPosition.FW]
             .filter(p => !assignedPlayers.has(p.id))
             .sort((a, b) => (b.overall_rating || 0) - (a.overall_rating || 0));
           selectedPlayer = allAvailable[0] || null;
@@ -168,12 +168,7 @@ function SoccerField({
     } else {
       // Fall back to default 4-4-2 positions with proper player sorting
       const sortedPlayers = [...players].sort((a, b) => {
-        const positionOrder = {
-          'GK': 0,
-          'CB': 1, 'LB': 2, 'RB': 3, 'LWB': 4, 'RWB': 5,
-          'CDM': 6, 'CM': 7, 'CAM': 8, 'LM': 9, 'RM': 10,
-          'LW': 11, 'RW': 12, 'CF': 13, 'ST': 14
-        };
+        const positionOrder = { 'GK': 0, 'DF': 1, 'MF': 2, 'FW': 3 };
         
         const aOrder = positionOrder[a.position as keyof typeof positionOrder] ?? 99;
         const bOrder = positionOrder[b.position as keyof typeof positionOrder] ?? 99;
@@ -234,12 +229,7 @@ function SoccerField({
   // Sort players for consistent rendering (same logic as in getPlayerPositions)
   const sortPlayers = (players: Player[]) => {
     return [...players].sort((a, b) => {
-      const positionOrder = {
-        'GK': 0,
-        'CB': 1, 'LB': 2, 'RB': 3, 'LWB': 4, 'RWB': 5,
-        'CDM': 6, 'CM': 7, 'CAM': 8, 'LM': 9, 'RM': 10,
-        'LW': 11, 'RW': 12, 'CF': 13, 'ST': 14
-      };
+      const positionOrder = { 'GK': 0, 'DF': 1, 'MF': 2, 'FW': 3 };
       
       const aOrder = positionOrder[a.position as keyof typeof positionOrder] ?? 99;
       const bOrder = positionOrder[b.position as keyof typeof positionOrder] ?? 99;
