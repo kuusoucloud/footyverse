@@ -426,8 +426,8 @@ function FootballPitch() {
             <cylinderGeometry args={[0.06, 0.06, 2.44]} />
             <meshStandardMaterial color="white" />
           </mesh>
-          <mesh position={[0, 2.44, 0]} castShadow>
-            <cylinderGeometry args={[0.06, 0.06, 7.32]} rotation={[0, 0, Math.PI / 2]} />
+          <mesh position={[0, 2.44, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+            <cylinderGeometry args={[0.06, 0.06, 7.32]} />
             <meshStandardMaterial color="white" />
           </mesh>
           
