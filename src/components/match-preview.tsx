@@ -220,16 +220,16 @@ function SoccerField({
     return positions;
   };
 
-  const homePositions = getPlayerPositions(matchData.home_players, matchData.home_formation, true);
-  const awayPositions = getPlayerPositions(matchData.away_players, matchData.away_formation, false);
+  const homePositions = getPlayerPositions(homePlayers, homeFormation, true);
+  const awayPositions = getPlayerPositions(awayPlayers, awayFormation, false);
 
   // Get players that have been assigned positions
   const getAssignedPlayers = (players: Player[], positions: { [key: string]: { x: number; y: number } }) => {
     return players.filter(player => positions[player.id]);
   };
 
-  const assignedHomePlayers = getAssignedPlayers(matchData.home_players, homePositions);
-  const assignedAwayPlayers = getAssignedPlayers(matchData.away_players, awayPositions);
+  const assignedHomePlayers = getAssignedPlayers(homePlayers, homePositions);
+  const assignedAwayPlayers = getAssignedPlayers(awayPlayers, awayPositions);
 
   // Sort players for consistent rendering (same logic as in getPlayerPositions)
   const sortPlayers = (players: Player[]) => {
