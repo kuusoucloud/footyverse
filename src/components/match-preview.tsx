@@ -547,21 +547,35 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
           .single(),
       ]);
 
-      // Get players for both teams
+      // Get players for both teams with proper position ordering
       const [homePlayersData, awayPlayersData] = await Promise.all([
         supabase
           .from("players")
           .select("*")
           .eq("team_id", fixture.home_team.id)
-          .order("position")
           .order("overall_rating", { ascending: false }),
         supabase
           .from("players")
           .select("*")
           .eq("team_id", fixture.away_team.id)
-          .order("position")
           .order("overall_rating", { ascending: false }),
       ]);
+
+      // Sort players by position priority (GK first, then by rating within each position)
+      const sortPlayersByPosition = (players: Player[]) => {
+        const positionOrder = { 'GK': 0, 'DF': 1, 'MF': 2, 'FW': 3 };
+        
+        return [...players].sort((a, b) => {
+          const aOrder = positionOrder[a.position as keyof typeof positionOrder] ?? 99;
+          const bOrder = positionOrder[b.position as keyof typeof positionOrder] ?? 99;
+          
+          if (aOrder !== bOrder) return aOrder - bOrder;
+          return (b.overall_rating || 0) - (a.overall_rating || 0);
+        });
+      };
+
+      const sortedHomePlayers = sortPlayersByPosition(homePlayersData.data || []);
+      const sortedAwayPlayers = sortPlayersByPosition(awayPlayersData.data || []);
 
       // Get recent form (last 5 matches for each team)
       const [homeFormData, awayFormData] = await Promise.all([
@@ -608,8 +622,8 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
         },
         home_team: homeTeamData.data || fixture.home_team,
         away_team: awayTeamData.data || fixture.away_team,
-        home_players: homePlayersData.data || [],
-        away_players: awayPlayersData.data || [],
+        home_players: sortedHomePlayers,
+        away_players: sortedAwayPlayers,
         home_form: homeForm,
         away_form: awayForm,
         home_formation:
@@ -1137,7 +1151,7 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
                   <div>
                     <h4 className="text-lg font-semibold text-white mb-3 flex items-center">
                       <Activity className="w-4 h-4 mr-2" />
-                      Substitutes (9)
+                      Substitutes ({Math.min(matchData.home_players.length - 11, 9)})
                     </h4>
                     <div className="space-y-3 max-h-64 overflow-y-auto">
                       {matchData.home_players.slice(11, 20).map((player) => (
@@ -1186,7 +1200,7 @@ export default function MatchPreview({ fixture, onBack }: MatchPreviewProps) {
                   <div>
                     <h4 className="text-lg font-semibold text-white mb-3 flex items-center">
                       <Activity className="w-4 h-4 mr-2" />
-                      Substitutes (9)
+                      Substitutes ({Math.min(matchData.away_players.length - 11, 9)})
                     </h4>
                     <div className="space-y-3 max-h-64 overflow-y-auto">
                       {matchData.away_players.slice(11, 20).map((player) => (
