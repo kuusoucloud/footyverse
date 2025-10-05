@@ -27,7 +27,7 @@ export class Match3DSimulator {
       homePlayers: this.initializePlayers(homePlayers, true),
       awayPlayers: this.initializePlayers(awayPlayers, false),
       ball: {
-        position: { x: 0, y: 0, z: 0 },
+        position: { x: 0, y: 0.11, z: 0 },
         velocity: { x: 0, y: 0, z: 0 },
         isInPlay: true,
         lastTouchedBy: null
@@ -40,6 +40,17 @@ export class Match3DSimulator {
         decision: null
       }
     };
+    
+    // Give ball to a random midfielder at kickoff
+    const allPlayers = [...this.matchState.homePlayers, ...this.matchState.awayPlayers];
+    const midfielders = allPlayers.filter(p => 
+      p.position.includes('M') || p.position.includes('CM')
+    );
+    if (midfielders.length > 0) {
+      const randomMidfielder = midfielders[Math.floor(Math.random() * midfielders.length)];
+      randomMidfielder.hasBall = true;
+      this.matchState.ball.lastTouchedBy = randomMidfielder.id;
+    }
   }
 
   private initializePlayers(players: any[], isHome: boolean) {
@@ -155,27 +166,28 @@ export class Match3DSimulator {
     const ballPos = this.matchState.ball.position;
     
     [...this.matchState.homePlayers, ...this.matchState.awayPlayers].forEach(player => {
-      // Basic AI movement towards ball or position
       const isHome = this.matchState.homePlayers.includes(player);
       const distanceToBall = Math.sqrt(
         Math.pow(player.currentPos.x - ballPos.x, 2) + 
         Math.pow(player.currentPos.z - ballPos.z, 2)
       );
       
-      // Player with ball stays put, others move towards tactical positions
+      // More dynamic movement patterns
       if (player.hasBall) {
-        // Ball carrier moves forward
-        player.targetPos.x += isHome ? 2 : -2;
-      } else if (distanceToBall < 10) {
-        // Players near ball move towards it
+        // Ball carrier moves forward aggressively
+        const direction = isHome ? 1 : -1;
+        player.targetPos.x += direction * (2 + Math.random() * 2);
+        player.targetPos.z += (Math.random() - 0.5) * 3;
+      } else if (distanceToBall < 15) {
+        // Players near ball move towards it with some randomness
         const direction = {
-          x: (ballPos.x - player.currentPos.x) * 0.1,
-          z: (ballPos.z - player.currentPos.z) * 0.1
+          x: (ballPos.x - player.currentPos.x) * (0.3 + Math.random() * 0.4),
+          z: (ballPos.z - player.currentPos.z) * (0.3 + Math.random() * 0.4)
         };
         player.targetPos.x = player.currentPos.x + direction.x;
         player.targetPos.z = player.currentPos.z + direction.z;
       } else {
-        // Return to formation position
+        // Return to formation position with some variation
         const formationPos = this.getFormationPositions(
           isHome ? this.formations.home : this.formations.away, 
           isHome
@@ -185,13 +197,29 @@ export class Match3DSimulator {
           this.matchState.awayPlayers.indexOf(player);
         
         if (formationPos[playerIndex]) {
-          player.targetPos = { ...formationPos[playerIndex] };
+          // Add some tactical variation to formation positions
+          const variation = {
+            x: (Math.random() - 0.5) * 8,
+            z: (Math.random() - 0.5) * 6
+          };
+          
+          player.targetPos.x = formationPos[playerIndex].x + variation.x;
+          player.targetPos.z = formationPos[playerIndex].z + variation.z;
         }
       }
       
-      // Clamp positions to pitch boundaries
-      player.targetPos.x = Math.max(-52, Math.min(52, player.targetPos.x));
-      player.targetPos.z = Math.max(-34, Math.min(34, player.targetPos.z));
+      // Clamp positions to pitch boundaries with some buffer
+      player.targetPos.x = Math.max(-50, Math.min(50, player.targetPos.x));
+      player.targetPos.z = Math.max(-32, Math.min(32, player.targetPos.z));
+      
+      // Gradually move current position towards target (this is key!)
+      const moveSpeed = 0.1 + (player.overall_rating / 1000);
+      player.currentPos.x += (player.targetPos.x - player.currentPos.x) * moveSpeed;
+      player.currentPos.z += (player.targetPos.z - player.currentPos.z) * moveSpeed;
+      
+      // Update velocity for animation purposes
+      player.velocity.x = (player.targetPos.x - player.currentPos.x) * 0.1;
+      player.velocity.z = (player.targetPos.z - player.currentPos.z) * 0.1;
     });
   }
 
@@ -200,12 +228,66 @@ export class Match3DSimulator {
       .find(p => p.hasBall);
     
     if (ballCarrier) {
+      // Ball follows player with slight offset
       this.matchState.ball.position = {
-        x: ballCarrier.currentPos.x,
-        y: 0,
-        z: ballCarrier.currentPos.z
+        x: ballCarrier.currentPos.x + (Math.random() - 0.5) * 0.5,
+        y: 0.11 + Math.sin(Date.now() * 0.01) * 0.05, // Slight bounce
+        z: ballCarrier.currentPos.z + 0.8 + (Math.random() - 0.5) * 0.3
       };
+      
+      // Ball velocity matches player movement
+      this.matchState.ball.velocity = {
+        x: ballCarrier.velocity.x * 2,
+        y: 0,
+        z: ballCarrier.velocity.z * 2
+      };
+    } else {
+      // Ball moves independently (loose ball)
+      this.matchState.ball.velocity.x *= 0.95; // Friction
+      this.matchState.ball.velocity.z *= 0.95;
+      
+      this.matchState.ball.position.x += this.matchState.ball.velocity.x * 0.1;
+      this.matchState.ball.position.z += this.matchState.ball.velocity.z * 0.1;
+      
+      // Ball physics - bounce and settle
+      if (this.matchState.ball.position.y > 0.11) {
+        this.matchState.ball.velocity.y -= 0.5; // Gravity
+      } else {
+        this.matchState.ball.position.y = 0.11;
+        this.matchState.ball.velocity.y = 0;
+      }
+      
+      // Assign ball to nearest player if close enough
+      const nearestPlayer = [...this.matchState.homePlayers, ...this.matchState.awayPlayers]
+        .reduce((nearest, player) => {
+          const distToBall = Math.sqrt(
+            Math.pow(player.currentPos.x - this.matchState.ball.position.x, 2) + 
+            Math.pow(player.currentPos.z - this.matchState.ball.position.z, 2)
+          );
+          const nearestDist = Math.sqrt(
+            Math.pow(nearest.currentPos.x - this.matchState.ball.position.x, 2) + 
+            Math.pow(nearest.currentPos.z - this.matchState.ball.position.z, 2)
+          );
+          return distToBall < nearestDist ? player : nearest;
+        });
+      
+      const distanceToNearest = Math.sqrt(
+        Math.pow(nearestPlayer.currentPos.x - this.matchState.ball.position.x, 2) + 
+        Math.pow(nearestPlayer.currentPos.z - this.matchState.ball.position.z, 2)
+      );
+      
+      if (distanceToNearest < 1.5) {
+        // Clear all ball possession first
+        [...this.matchState.homePlayers, ...this.matchState.awayPlayers].forEach(p => p.hasBall = false);
+        // Assign to nearest player
+        nearestPlayer.hasBall = true;
+        this.matchState.ball.lastTouchedBy = nearestPlayer.id;
+      }
     }
+    
+    // Keep ball on pitch
+    this.matchState.ball.position.x = Math.max(-52, Math.min(52, this.matchState.ball.position.x));
+    this.matchState.ball.position.z = Math.max(-34, Math.min(34, this.matchState.ball.position.z));
   }
 
   private checkForEvents() {

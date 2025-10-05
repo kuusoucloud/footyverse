@@ -1,7 +1,7 @@
 'use client';
 
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Text, Box, Sphere, Cylinder, Plane } from '@react-three/drei';
+import { Canvas, useFrame, useThree, useLoader } from '@react-three/fiber';
+import { OrbitControls, Text, Box, Sphere, Cylinder, Plane, Environment, Sky, ContactShadows, useGLTF, Html } from '@react-three/drei';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useFootballStore, MatchState, PlayerState } from '@/lib/football-store';
 import { FootballAPI } from '@/lib/football-api';
@@ -70,256 +70,563 @@ interface MatchEvent {
   position?: THREE.Vector3;
 }
 
-// Football Manager-style Camera Controller
+// Cinematic Camera Controller with smooth transitions
 function MatchCamera({ matchState, cameraMode }: { matchState: Match3DState; cameraMode: string }) {
   const { camera } = useThree();
+  const targetPosition = useRef(new THREE.Vector3());
+  const targetLookAt = useRef(new THREE.Vector3());
   
-  useFrame(() => {
+  useFrame((state, delta) => {
     const ball = matchState.ball.position;
     
     switch (cameraMode) {
       case 'broadcast':
-        // Follow ball with smooth broadcast-style movement
-        const targetX = ball.x * 0.8;
-        const targetZ = ball.z * 0.6 + 60;
-        const targetY = 25 + Math.abs(ball.x) * 0.1;
+        // Dynamic broadcast camera that follows action
+        const ballSpeed = matchState.ball.velocity.length();
+        const cameraHeight = 20 + ballSpeed * 5;
+        const cameraDistance = 45 + ballSpeed * 10;
         
-        camera.position.lerp(new THREE.Vector3(targetX, targetY, targetZ), 0.02);
-        camera.lookAt(ball.x, 0, ball.z);
+        targetPosition.current.set(
+          ball.x * 0.3,
+          cameraHeight,
+          ball.z * 0.4 + cameraDistance
+        );
+        targetLookAt.current.set(ball.x, 0, ball.z);
         break;
         
       case 'tactical':
-        // High tactical view
-        camera.position.lerp(new THREE.Vector3(0, 80, 0), 0.05);
-        camera.lookAt(0, 0, 0);
+        // High tactical overview
+        targetPosition.current.set(0, 60, 20);
+        targetLookAt.current.set(0, 0, 0);
         break;
         
       case 'behind_goal':
-        // Behind goal view
+        // Behind goal with dynamic positioning
         const goalSide = ball.x > 0 ? 1 : -1;
-        camera.position.lerp(new THREE.Vector3(goalSide * 60, 15, ball.z * 0.3), 0.03);
-        camera.lookAt(ball.x, 0, ball.z);
+        targetPosition.current.set(goalSide * 65, 12, ball.z * 0.2);
+        targetLookAt.current.set(ball.x, 2, ball.z);
         break;
         
       case 'sideline':
-        // Sideline view following play
-        camera.position.lerp(new THREE.Vector3(ball.x, 12, 40), 0.03);
-        camera.lookAt(ball.x, 0, ball.z);
+        // Sideline tracking camera
+        targetPosition.current.set(ball.x * 0.8, 8, 45);
+        targetLookAt.current.set(ball.x, 0, ball.z);
+        break;
+        
+      case 'player_cam':
+        // Follow closest player to ball
+        const allPlayers = [...matchState.homePlayers, ...matchState.awayPlayers];
+        const closestPlayer = allPlayers.reduce((closest, player) => {
+          const distToBall = player.currentPos.distanceTo(ball);
+          const closestDist = closest.currentPos.distanceTo(ball);
+          return distToBall < closestDist ? player : closest;
+        });
+        
+        const behindPlayer = closestPlayer.currentPos.clone().add(
+          new THREE.Vector3(0, 3, -8)
+        );
+        targetPosition.current.copy(behindPlayer);
+        targetLookAt.current.copy(ball);
         break;
         
       case 'manual':
-        // Don't override camera when in manual mode
-        break;
+        // Don't override manual camera control
+        return;
     }
+    
+    // Smooth camera transitions
+    camera.position.lerp(targetPosition.current, delta * 2);
+    
+    // Smooth look-at with some prediction
+    const lookAtTarget = targetLookAt.current.clone();
+    if (matchState.ball.velocity.length() > 0.1) {
+      lookAtTarget.add(matchState.ball.velocity.clone().multiplyScalar(2));
+    }
+    
+    const currentLookAt = new THREE.Vector3();
+    camera.getWorldDirection(currentLookAt);
+    currentLookAt.multiplyScalar(-1).add(camera.position);
+    
+    currentLookAt.lerp(lookAtTarget, delta * 3);
+    camera.lookAt(currentLookAt);
   });
 
   return null;
 }
 
-// Enhanced 3D Player with realistic movement
+// Ultra-realistic Player with detailed animations
 function Player3D({ player, teamColor, isHome }: { 
   player: Player3DState; 
   teamColor: string; 
   isHome: boolean;
 }) {
-  const meshRef = useRef<THREE.Group>(null);
+  const groupRef = useRef<THREE.Group>(null);
+  const bodyRef = useRef<THREE.Mesh>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [runCycle, setRunCycle] = useState(0);
+  const previousPosition = useRef(new THREE.Vector3());
   
   useFrame((state, delta) => {
-    if (!meshRef.current) return;
+    if (!groupRef.current || !bodyRef.current) return;
     
-    // Smooth movement towards target position
-    const distance = player.currentPos.distanceTo(player.targetPos);
-    if (distance > 0.1) {
-      const direction = player.targetPos.clone().sub(player.currentPos).normalize();
-      const speed = Math.min(distance * 2, player.stamina * 0.01 + 0.1);
+    // Calculate movement speed and direction
+    const currentPos = new THREE.Vector3(player.currentPos.x, 0, player.currentPos.z);
+    const targetPos = new THREE.Vector3(player.targetPos.x, 0, player.targetPos.z);
+    const distance = currentPos.distanceTo(targetPos);
+    
+    if (distance > 0.2) {
+      // Calculate movement speed based on player attributes
+      const baseSpeed = (player.overall_rating / 100) * 8 + 2; // 2-10 units/sec
+      const staminaMultiplier = player.stamina / 100;
+      const speed = baseSpeed * staminaMultiplier * delta;
       
-      player.currentPos.add(direction.multiplyScalar(speed * delta * 60));
-      setIsRunning(speed > 0.05);
+      // Move towards target
+      const direction = targetPos.clone().sub(currentPos).normalize();
+      const movement = direction.multiplyScalar(Math.min(speed, distance));
       
-      // Face movement direction
-      if (speed > 0.02) {
-        const angle = Math.atan2(direction.x, direction.z);
-        meshRef.current.rotation.y = angle;
-      }
+      player.currentPos.add(movement);
+      setIsRunning(true);
+      
+      // Face movement direction with smooth rotation
+      const angle = Math.atan2(direction.x, direction.z);
+      groupRef.current.rotation.y = THREE.MathUtils.lerp(
+        groupRef.current.rotation.y, 
+        angle, 
+        delta * 8
+      );
+      
+      // Running animation cycle
+      setRunCycle(prev => prev + delta * 10);
     } else {
       setIsRunning(false);
+      setRunCycle(0);
     }
     
-    meshRef.current.position.copy(player.currentPos);
+    // Update position
+    groupRef.current.position.copy(player.currentPos);
     
-    // Bobbing animation when running
+    // Advanced running animation
     if (isRunning) {
-      meshRef.current.position.y += Math.sin(state.clock.elapsedTime * 10) * 0.1;
+      const bobAmount = 0.15;
+      const bobSpeed = 12;
+      groupRef.current.position.y = Math.sin(runCycle * bobSpeed) * bobAmount;
+      
+      // Body lean when running
+      bodyRef.current.rotation.x = Math.sin(runCycle * bobSpeed) * 0.1;
+      bodyRef.current.rotation.z = Math.sin(runCycle * bobSpeed * 0.5) * 0.05;
+    } else {
+      // Idle breathing animation
+      groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 2) * 0.02;
+      bodyRef.current.rotation.x = 0;
+      bodyRef.current.rotation.z = 0;
     }
+    
+    // Performance-based glow effect
+    if (player.matchRating > 8) {
+      bodyRef.current.material.emissive.setHex(0x004400);
+      bodyRef.current.material.emissiveIntensity = 0.2;
+    } else if (player.matchRating < 4) {
+      bodyRef.current.material.emissive.setHex(0x440000);
+      bodyRef.current.material.emissiveIntensity = 0.1;
+    } else {
+      bodyRef.current.material.emissive.setHex(0x000000);
+      bodyRef.current.material.emissiveIntensity = 0;
+    }
+    
+    previousPosition.current.copy(player.currentPos);
   });
 
+  // Player jersey number
+  const jerseyNumber = Math.floor(Math.random() * 99) + 1;
+
   return (
-    <group ref={meshRef}>
-      {/* Player body */}
-      <Box args={[0.8, 1.8, 0.4]} position={[0, 0.9, 0]}>
-        <meshStandardMaterial color={teamColor} />
-      </Box>
+    <group ref={groupRef}>
+      {/* Player shadow */}
+      <ContactShadows 
+        position={[0, -0.01, 0]} 
+        scale={2} 
+        blur={2} 
+        far={2} 
+        opacity={0.4} 
+      />
+      
+      {/* Player body with realistic proportions */}
+      <mesh ref={bodyRef} position={[0, 1, 0]} castShadow receiveShadow>
+        <capsuleGeometry args={[0.3, 1.2, 8, 16]} />
+        <meshStandardMaterial 
+          color={teamColor}
+          roughness={0.8}
+          metalness={0.1}
+        />
+      </mesh>
       
       {/* Player head */}
-      <Sphere args={[0.3]} position={[0, 1.9, 0]}>
-        <meshStandardMaterial color="#ffdbac" />
-      </Sphere>
+      <mesh position={[0, 1.8, 0]} castShadow>
+        <sphereGeometry args={[0.25, 16, 16]} />
+        <meshStandardMaterial 
+          color="#ffdbac" 
+          roughness={0.9}
+          metalness={0.0}
+        />
+      </mesh>
       
-      {/* Player number */}
+      {/* Hair */}
+      <mesh position={[0, 2.0, 0]} castShadow>
+        <sphereGeometry args={[0.28, 16, 16]} />
+        <meshStandardMaterial 
+          color={Math.random() > 0.5 ? "#2d1810" : "#8b4513"} 
+          roughness={1.0}
+        />
+      </mesh>
+      
+      {/* Jersey number */}
       <Text
-        position={[0, 1.0, 0.25]}
-        fontSize={0.3}
+        position={[0, 1.2, 0.32]}
+        fontSize={0.25}
         color="white"
         anchorX="center"
         anchorY="middle"
+        font="/fonts/roboto-bold.woff"
       >
-        {player.name.split(' ').pop()?.slice(0, 3).toUpperCase()}
+        {jerseyNumber}
       </Text>
+      
+      {/* Player name above head */}
+      <Html position={[0, 2.5, 0]} center>
+        <div className="bg-black/70 text-white px-2 py-1 rounded text-xs whitespace-nowrap">
+          {player.name.split(' ').pop()}
+        </div>
+      </Html>
       
       {/* Ball at feet if player has possession */}
       {player.hasBall && (
-        <Sphere args={[0.11]} position={[0, 0.2, 0.6]}>
-          <meshStandardMaterial color="white" />
-        </Sphere>
+        <group position={[0, 0.15, 0.8]}>
+          <mesh castShadow>
+            <sphereGeometry args={[0.11, 16, 16]} />
+            <meshStandardMaterial 
+              color="white" 
+              roughness={0.3}
+              metalness={0.1}
+            />
+          </mesh>
+          {/* Ball glow effect */}
+          <pointLight intensity={0.5} color="#ffff00" distance={2} />
+        </group>
       )}
       
       {/* Selection indicator */}
       {player.isSelected && (
-        <Cylinder args={[1, 1, 0.1]} position={[0, 0.05, 0]}>
-          <meshStandardMaterial color="yellow" transparent opacity={0.3} />
-        </Cylinder>
+        <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[1.2, 1.4, 32]} />
+          <meshBasicMaterial color="yellow" transparent opacity={0.8} />
+        </mesh>
       )}
       
-      {/* Performance indicator */}
-      <Box args={[1.2, 0.1, 0.1]} position={[0, 2.5, 0]}>
-        <meshStandardMaterial 
-          color={player.matchRating > 7 ? 'green' : player.matchRating > 5 ? 'yellow' : 'red'} 
+      {/* Performance indicator ring */}
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.8, 0.9, 32]} />
+        <meshBasicMaterial 
+          color={
+            player.matchRating > 8 ? '#00ff00' :
+            player.matchRating > 7 ? '#88ff00' :
+            player.matchRating > 6 ? '#ffff00' :
+            player.matchRating > 5 ? '#ff8800' :
+            '#ff0000'
+          }
+          transparent 
+          opacity={0.6} 
         />
-      </Box>
+      </mesh>
+      
+      {/* Stamina indicator */}
+      <Html position={[0, 2.8, 0]} center>
+        <div className="w-8 h-1 bg-gray-600 rounded">
+          <div 
+            className="h-full bg-green-400 rounded transition-all duration-300"
+            style={{ width: `${player.stamina}%` }}
+          />
+        </div>
+      </Html>
     </group>
   );
 }
 
-// Enhanced Football Pitch with realistic details
+// Stadium-quality Football Pitch
 function FootballPitch() {
+  const grassTexture = useLoader(THREE.TextureLoader, 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxwYXR0ZXJuIGlkPSJncmFzcyIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIj4KICAgICAgPHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBmaWxsPSIjMmQ1YTI3Ii8+CiAgICAgIDxyZWN0IHdpZHRoPSI1IiBoZWlnaHQ9IjEwIiBmaWxsPSIjMzQ2ODJkIi8+CiAgICA8L3BhdHRlcm4+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSJ1cmwoI2dyYXNzKSIvPgo8L3N2Zz4K');
+  
   return (
     <group>
-      {/* Main pitch */}
-      <Plane args={[105, 68]} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <meshStandardMaterial color="#2d5a27" />
-      </Plane>
+      {/* Main pitch with grass texture */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+        <planeGeometry args={[105, 68]} />
+        <meshStandardMaterial 
+          color="#2d5a27"
+          roughness={0.9}
+          metalness={0.0}
+        />
+      </mesh>
       
-      {/* Pitch markings */}
+      {/* Pitch border */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
+        <planeGeometry args={[110, 73]} />
+        <meshStandardMaterial color="#1a3d1a" />
+      </mesh>
+      
       {/* Center circle */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
         <ringGeometry args={[9.15, 9.25, 64]} />
         <meshStandardMaterial color="white" />
       </mesh>
       
-      {/* Center line */}
-      <Box args={[0.12, 0.02, 68]} position={[0, 0.01, 0]}>
+      {/* Center spot */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+        <circleGeometry args={[0.15, 16]} />
         <meshStandardMaterial color="white" />
-      </Box>
-      
-      {/* Penalty areas */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-40.32, 0.01, 0]}>
-        <ringGeometry args={[0, 16.5, 32, 1, 0, Math.PI]} />
-        <meshStandardMaterial color="white" transparent opacity={0.8} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, Math.PI]} position={[40.32, 0.01, 0]}>
-        <ringGeometry args={[0, 16.5, 32, 1, 0, Math.PI]} />
-        <meshStandardMaterial color="white" transparent opacity={0.8} />
       </mesh>
       
-      {/* Goals */}
-      <group position={[-52.5, 0, 0]}>
-        <Box args={[0.2, 2.44, 7.32]}>
-          <meshStandardMaterial color="white" />
-        </Box>
-        <Box args={[0.2, 2.44, 0.2]} position={[0, 0, 3.66]}>
-          <meshStandardMaterial color="white" />
-        </Box>
-        <Box args={[0.2, 2.44, 0.2]} position={[0, 0, -3.66]}>
-          <meshStandardMaterial color="white" />
-        </Box>
-        <Box args={[0.2, 0.2, 7.32]} position={[0, 2.44, 0]}>
-          <meshStandardMaterial color="white" />
-        </Box>
-      </group>
+      {/* Center line */}
+      <mesh position={[0, 0.01, 0]}>
+        <boxGeometry args={[0.12, 0.02, 68]} />
+        <meshStandardMaterial color="white" />
+      </mesh>
       
-      <group position={[52.5, 0, 0]}>
-        <Box args={[0.2, 2.44, 7.32]}>
-          <meshStandardMaterial color="white" />
-        </Box>
-        <Box args={[0.2, 2.44, 0.2]} position={[0, 0, 3.66]}>
-          <meshStandardMaterial color="white" />
-        </Box>
-        <Box args={[0.2, 2.44, 0.2]} position={[0, 0, -3.66]}>
-          <meshStandardMaterial color="white" />
-        </Box>
-        <Box args={[0.2, 0.2, 7.32]} position={[0, 2.44, 0]}>
-          <meshStandardMaterial color="white" />
-        </Box>
-      </group>
+      {/* Penalty areas and arcs */}
+      {[-1, 1].map((side, i) => (
+        <group key={i} position={[side * 40.32, 0, 0]}>
+          {/* Penalty area */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+            <ringGeometry args={[0, 16.5, 32, 1, side > 0 ? Math.PI : 0, Math.PI]} />
+            <meshStandardMaterial color="white" transparent opacity={0.8} />
+          </mesh>
+          
+          {/* Goal area */}
+          <mesh position={[side * 5.5, 0.01, 0]}>
+            <boxGeometry args={[11, 0.02, 18.32]} />
+            <meshStandardMaterial color="white" transparent opacity={0.3} />
+          </mesh>
+          
+          {/* Penalty spot */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[side * 11, 0.01, 0]}>
+            <circleGeometry args={[0.15, 16]} />
+            <meshStandardMaterial color="white" />
+          </mesh>
+        </group>
+      ))}
+      
+      {/* Goals with nets */}
+      {[-1, 1].map((side, i) => (
+        <group key={i} position={[side * 52.5, 0, 0]}>
+          {/* Goal posts */}
+          <mesh position={[0, 1.22, 3.66]} castShadow>
+            <cylinderGeometry args={[0.06, 0.06, 2.44]} />
+            <meshStandardMaterial color="white" />
+          </mesh>
+          <mesh position={[0, 1.22, -3.66]} castShadow>
+            <cylinderGeometry args={[0.06, 0.06, 2.44]} />
+            <meshStandardMaterial color="white" />
+          </mesh>
+          <mesh position={[0, 2.44, 0]} castShadow>
+            <cylinderGeometry args={[0.06, 0.06, 7.32]} rotation={[0, 0, Math.PI / 2]} />
+            <meshStandardMaterial color="white" />
+          </mesh>
+          
+          {/* Goal net */}
+          <mesh position={[side * -1, 1.22, 0]}>
+            <boxGeometry args={[2, 2.44, 7.32]} />
+            <meshStandardMaterial 
+              color="white" 
+              transparent 
+              opacity={0.1}
+              wireframe
+            />
+          </mesh>
+        </group>
+      ))}
       
       {/* Corner flags */}
       {[[-52.5, 34], [-52.5, -34], [52.5, 34], [52.5, -34]].map(([x, z], i) => (
         <group key={i} position={[x, 0, z]}>
-          <Cylinder args={[0.05, 0.05, 1.5]} position={[0, 0.75, 0]}>
+          <mesh position={[0, 0.75, 0]} castShadow>
+            <cylinderGeometry args={[0.03, 0.03, 1.5]} />
             <meshStandardMaterial color="white" />
-          </Cylinder>
-          <Box args={[0.3, 0.2, 0.02]} position={[0, 1.4, 0]}>
-            <meshStandardMaterial color="red" />
-          </Box>
+          </mesh>
+          <mesh position={[0, 1.4, 0]}>
+            <boxGeometry args={[0.4, 0.25, 0.02]} />
+            <meshStandardMaterial color="#ff0000" />
+          </mesh>
         </group>
       ))}
       
-      {/* Stadium atmosphere */}
-      <Box args={[120, 20, 80]} position={[0, 10, 0]}>
-        <meshStandardMaterial color="#1a1a1a" transparent opacity={0.1} />
-      </Box>
+      {/* Stadium stands */}
+      <group>
+        {/* North stand */}
+        <mesh position={[0, 15, -50]} castShadow>
+          <boxGeometry args={[120, 30, 20]} />
+          <meshStandardMaterial color="#2a2a2a" />
+        </mesh>
+        
+        {/* South stand */}
+        <mesh position={[0, 15, 50]} castShadow>
+          <boxGeometry args={[120, 30, 20]} />
+          <meshStandardMaterial color="#2a2a2a" />
+        </mesh>
+        
+        {/* East stand */}
+        <mesh position={[70, 15, 0]} castShadow>
+          <boxGeometry args={[20, 30, 80]} />
+          <meshStandardMaterial color="#2a2a2a" />
+        </mesh>
+        
+        {/* West stand */}
+        <mesh position={[-70, 15, 0]} castShadow>
+          <boxGeometry args={[20, 30, 80]} />
+          <meshStandardMaterial color="#2a2a2a" />
+        </mesh>
+      </group>
+      
+      {/* Stadium lights */}
+      {[[-60, 40, -40], [60, 40, -40], [-60, 40, 40], [60, 40, 40]].map(([x, y, z], i) => (
+        <group key={i} position={[x, y, z]}>
+          <mesh castShadow>
+            <cylinderGeometry args={[0.5, 0.5, 8]} />
+            <meshStandardMaterial color="#333333" />
+          </mesh>
+          <pointLight 
+            intensity={2} 
+            color="#ffffff" 
+            distance={100}
+            castShadow
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
+          />
+        </group>
+      ))}
     </group>
   );
 }
 
-// Enhanced Ball with physics
+// Professional Ball with physics and effects
 function Ball3D({ ballState }: { ballState: Ball3DState }) {
   const ballRef = useRef<THREE.Mesh>(null);
+  const trailRef = useRef<THREE.Points>(null);
+  const [trailPositions, setTrailPositions] = useState<THREE.Vector3[]>([]);
   
   useFrame((state, delta) => {
     if (!ballRef.current) return;
     
     ballRef.current.position.copy(ballState.position);
     
-    // Ball rotation based on movement
+    // Realistic ball rotation based on movement
     if (ballState.velocity.length() > 0.1) {
-      ballRef.current.rotation.x += ballState.velocity.z * delta * 2;
-      ballRef.current.rotation.z -= ballState.velocity.x * delta * 2;
+      const rotationSpeed = ballState.velocity.length() * 2;
+      ballRef.current.rotation.x += ballState.velocity.z * delta * rotationSpeed;
+      ballRef.current.rotation.z -= ballState.velocity.x * delta * rotationSpeed;
+    }
+    
+    // Ball trail effect
+    setTrailPositions(prev => {
+      const newTrail = [ballState.position.clone(), ...prev.slice(0, 10)];
+      return newTrail;
+    });
+    
+    // Ball bounce physics
+    if (ballState.position.y > 0.11) {
+      ballRef.current.position.y = Math.max(0.11, ballState.position.y - delta * 9.8);
     }
   });
 
   return (
-    <Sphere ref={ballRef} args={[0.11]}>
-      <meshStandardMaterial 
-        color="white" 
-        roughness={0.3}
-        metalness={0.1}
+    <group>
+      {/* Ball shadow */}
+      <ContactShadows 
+        position={[ballState.position.x, 0, ballState.position.z]} 
+        scale={0.5} 
+        blur={1} 
+        far={1} 
+        opacity={0.6} 
       />
-    </Sphere>
+      
+      {/* Main ball */}
+      <mesh ref={ballRef} castShadow>
+        <sphereGeometry args={[0.11, 32, 32]} />
+        <meshStandardMaterial 
+          color="white" 
+          roughness={0.2}
+          metalness={0.1}
+        />
+      </mesh>
+      
+      {/* Ball glow when moving fast */}
+      {ballState.velocity.length() > 5 && (
+        <mesh position={ballState.position}>
+          <sphereGeometry args={[0.15, 16, 16]} />
+          <meshBasicMaterial 
+            color="#ffff00" 
+            transparent 
+            opacity={0.3}
+          />
+        </mesh>
+      )}
+      
+      {/* Speed trail */}
+      {trailPositions.length > 1 && (
+        <line>
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              count={trailPositions.length}
+              array={new Float32Array(trailPositions.flatMap(p => [p.x, p.y, p.z]))}
+              itemSize={3}
+            />
+          </bufferGeometry>
+          <lineBasicMaterial color="#ffffff" transparent opacity={0.5} />
+        </line>
+      )}
+    </group>
   );
 }
 
-// Referee 3D model
+// Enhanced Referee with realistic movement
 function Referee3D({ position }: { position: THREE.Vector3 }) {
+  const refRef = useRef<THREE.Group>(null);
+  
+  useFrame((state) => {
+    if (!refRef.current) return;
+    
+    // Referee breathing animation
+    refRef.current.position.y = Math.sin(state.clock.elapsedTime * 2) * 0.02;
+  });
+
   return (
-    <group position={[position.x, 0, position.z]}>
-      <Box args={[0.6, 1.6, 0.3]} position={[0, 0.8, 0]}>
+    <group ref={refRef} position={[position.x, 0, position.z]}>
+      {/* Referee body */}
+      <mesh position={[0, 0.9, 0]} castShadow>
+        <capsuleGeometry args={[0.25, 1.0, 8, 16]} />
         <meshStandardMaterial color="#000000" />
-      </Box>
-      <Sphere args={[0.25]} position={[0, 1.7, 0]}>
+      </mesh>
+      
+      {/* Referee head */}
+      <mesh position={[0, 1.6, 0]} castShadow>
+        <sphereGeometry args={[0.2, 16, 16]} />
         <meshStandardMaterial color="#ffdbac" />
-      </Sphere>
+      </mesh>
+      
+      {/* Whistle */}
+      <mesh position={[0.1, 1.5, 0.15]} castShadow>
+        <cylinderGeometry args={[0.02, 0.02, 0.1]} />
+        <meshStandardMaterial color="#silver" />
+      </mesh>
+      
+      {/* Cards */}
+      <mesh position={[-0.2, 1.0, 0.2]} castShadow>
+        <boxGeometry args={[0.05, 0.08, 0.01]} />
+        <meshStandardMaterial color="#ffff00" />
+      </mesh>
+      <mesh position={[-0.15, 1.0, 0.2]} castShadow>
+        <boxGeometry args={[0.05, 0.08, 0.01]} />
+        <meshStandardMaterial color="#ff0000" />
+      </mesh>
     </group>
   );
 }
@@ -357,17 +664,29 @@ function MatchHUD({ matchState, onCameraChange }: {
         </div>
       )}
 
-      {/* Camera controls */}
-      <div className="absolute top-4 right-4 bg-black/80 text-white p-4 rounded-lg">
-        <h3 className="font-bold mb-2">Camera</h3>
+      {/* Enhanced Camera controls */}
+      <div className="absolute top-4 right-4 bg-black/90 text-white p-4 rounded-lg backdrop-blur-sm border border-white/20">
+        <h3 className="font-bold mb-3 text-lg">📹 Camera</h3>
         <div className="space-y-2">
-          {['broadcast', 'tactical', 'behind_goal', 'sideline', 'manual'].map(mode => (
+          {[
+            { mode: 'broadcast', label: '📺 BROADCAST', desc: 'TV-style following' },
+            { mode: 'tactical', label: '🗺️ TACTICAL', desc: 'Top-down view' },
+            { mode: 'behind_goal', label: '🥅 BEHIND GOAL', desc: 'Goal-line view' },
+            { mode: 'sideline', label: '📐 SIDELINE', desc: 'Side tracking' },
+            { mode: 'player_cam', label: '🏃 PLAYER CAM', desc: 'Follow closest player' },
+            { mode: 'manual', label: '🎮 MANUAL', desc: 'Free control' }
+          ].map(({ mode, label, desc }) => (
             <button
               key={mode}
               onClick={() => onCameraChange(mode)}
-              className="block w-full text-left px-2 py-1 hover:bg-white/20 rounded text-sm"
+              className={`block w-full text-left px-3 py-2 rounded text-sm transition-all ${
+                cameraMode === mode 
+                  ? 'bg-blue-600 text-white' 
+                  : 'hover:bg-white/20'
+              }`}
             >
-              {mode.replace('_', ' ').toUpperCase()}
+              <div className="font-semibold">{label}</div>
+              <div className="text-xs text-gray-300">{desc}</div>
             </button>
           ))}
         </div>
@@ -613,29 +932,59 @@ export default function MatchViewer3D({ fixtureId }: MatchViewer3DProps) {
           near: 0.1,
           far: 1000
         }}
-        shadows
+        shadows="soft"
+        gl={{ 
+          antialias: true,
+          alpha: false,
+          powerPreference: "high-performance",
+          shadowMap: true
+        }}
       >
-        <ambientLight intensity={0.4} />
+        {/* Advanced lighting setup */}
+        <ambientLight intensity={0.3} color="#87CEEB" />
+        
+        {/* Main sun light */}
         <directionalLight 
-          position={[50, 100, 50]} 
-          intensity={1.2}
+          position={[100, 100, 50]} 
+          intensity={1.5}
+          color="#ffffff"
           castShadow
           shadow-mapSize-width={4096}
           shadow-mapSize-height={4096}
-          shadow-camera-far={200}
+          shadow-camera-far={300}
           shadow-camera-left={-100}
           shadow-camera-right={100}
           shadow-camera-top={100}
           shadow-camera-bottom={-100}
+          shadow-bias={-0.0001}
         />
         
+        {/* Stadium flood lights */}
+        <pointLight position={[-60, 40, -40]} intensity={1.2} color="#ffffff" castShadow />
+        <pointLight position={[60, 40, -40]} intensity={1.2} color="#ffffff" castShadow />
+        <pointLight position={[-60, 40, 40]} intensity={1.2} color="#ffffff" castShadow />
+        <pointLight position={[60, 40, 40]} intensity={1.2} color="#ffffff" castShadow />
+        
+        {/* Atmospheric effects */}
+        <fog attach="fog" args={['#87CEEB', 100, 300]} />
+        <Sky 
+          distance={450000}
+          sunPosition={[100, 100, 50]}
+          inclination={0.49}
+          azimuth={0.25}
+        />
+        
+        {/* Camera controls with constraints */}
         <OrbitControls 
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          maxPolarAngle={Math.PI / 2}
-          minDistance={10}
-          maxDistance={200}
+          maxPolarAngle={Math.PI / 2.2}
+          minPolarAngle={Math.PI / 6}
+          minDistance={5}
+          maxDistance={150}
+          enableDamping={true}
+          dampingFactor={0.05}
         />
         
         <MatchCamera matchState={matchState} cameraMode={cameraMode} />
@@ -647,7 +996,7 @@ export default function MatchViewer3D({ fixtureId }: MatchViewer3DProps) {
           <Player3D 
             key={player.id} 
             player={player} 
-            teamColor="#ff0000"
+            teamColor="#DC143C"
             isHome={true}
           />
         ))}
@@ -656,10 +1005,13 @@ export default function MatchViewer3D({ fixtureId }: MatchViewer3DProps) {
           <Player3D 
             key={player.id} 
             player={player} 
-            teamColor="#0000ff"
+            teamColor="#1E90FF"
             isHome={false}
           />
         ))}
+        
+        {/* Environmental effects */}
+        <Environment preset="sunset" background={false} />
       </Canvas>
     </div>
   );
