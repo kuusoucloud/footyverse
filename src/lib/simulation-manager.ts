@@ -299,23 +299,24 @@ export class Match3DSimulator {
     const allPlayers = [...this.matchState.homePlayers, ...this.matchState.awayPlayers];
     const cardedPlayer = allPlayers[Math.floor(Math.random() * allPlayers.length)];
     const isRed = Math.random() < 0.2; // 20% chance of red card
-    
+
     cardedPlayer.stats.cards++;
     cardedPlayer.matchRating -= isRed ? 2.0 : 0.5;
-    
+
+    const eventType = isRed ? 'red_card' : 'yellow_card';
     const event = {
       minute,
       second,
-      type: (isRed ? 'red_card' : 'yellow_card') as const,
+      type: eventType as 'red_card' | 'yellow_card',
       player_id: cardedPlayer.id,
       team_id: cardedPlayer.team_id,
       description: `${isRed ? '🟥 Red' : '🟨 Yellow'} card for ${cardedPlayer.name}`,
       position: { ...cardedPlayer.currentPos }
     };
-    
+
     this.matchState.events.push(event);
     this.matchState.lastEvent = event;
-    
+
     setTimeout(() => {
       if (this.matchState.lastEvent === event) {
         this.matchState.lastEvent = null;
