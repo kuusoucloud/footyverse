@@ -71,9 +71,8 @@ interface MatchEvent {
 }
 
 // Football Manager-style Camera Controller
-function MatchCamera({ matchState }: { matchState: Match3DState }) {
+function MatchCamera({ matchState, cameraMode }: { matchState: Match3DState; cameraMode: string }) {
   const { camera } = useThree();
-  const [cameraMode, setCameraMode] = useState<'broadcast' | 'tactical' | 'behind_goal' | 'sideline'>('broadcast');
   
   useFrame(() => {
     const ball = matchState.ball.position;
@@ -106,6 +105,10 @@ function MatchCamera({ matchState }: { matchState: Match3DState }) {
         // Sideline view following play
         camera.position.lerp(new THREE.Vector3(ball.x, 12, 40), 0.03);
         camera.lookAt(ball.x, 0, ball.z);
+        break;
+        
+      case 'manual':
+        // Don't override camera when in manual mode
         break;
     }
   });
@@ -358,7 +361,7 @@ function MatchHUD({ matchState, onCameraChange }: {
       <div className="absolute top-4 right-4 bg-black/80 text-white p-4 rounded-lg">
         <h3 className="font-bold mb-2">Camera</h3>
         <div className="space-y-2">
-          {['broadcast', 'tactical', 'behind_goal', 'sideline'].map(mode => (
+          {['broadcast', 'tactical', 'behind_goal', 'sideline', 'manual'].map(mode => (
             <button
               key={mode}
               onClick={() => onCameraChange(mode)}
@@ -437,6 +440,34 @@ export default function MatchViewer3D({ fixtureId }: MatchViewer3DProps) {
   const [cameraMode, setCameraMode] = useState('broadcast');
   const simulationRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Convert API data to 3D objects
+  const convertToMatch3DState = (apiData: any): Match3DState => {
+    return {
+      ...apiData,
+      homePlayers: apiData.homePlayers.map((player: any) => ({
+        ...player,
+        currentPos: new THREE.Vector3(player.currentPos.x, player.currentPos.y, player.currentPos.z),
+        targetPos: new THREE.Vector3(player.targetPos.x, player.targetPos.y, player.targetPos.z),
+        velocity: new THREE.Vector3(player.velocity.x, player.velocity.y, player.velocity.z)
+      })),
+      awayPlayers: apiData.awayPlayers.map((player: any) => ({
+        ...player,
+        currentPos: new THREE.Vector3(player.currentPos.x, player.currentPos.y, player.currentPos.z),
+        targetPos: new THREE.Vector3(player.targetPos.x, player.targetPos.y, player.targetPos.z),
+        velocity: new THREE.Vector3(player.velocity.x, player.velocity.y, player.velocity.z)
+      })),
+      ball: {
+        ...apiData.ball,
+        position: new THREE.Vector3(apiData.ball.position.x, apiData.ball.position.y, apiData.ball.position.z),
+        velocity: new THREE.Vector3(apiData.ball.velocity.x, apiData.ball.velocity.y, apiData.ball.velocity.z)
+      },
+      referee: {
+        ...apiData.referee,
+        position: new THREE.Vector3(apiData.referee.position.x, apiData.referee.position.y, apiData.referee.position.z)
+      }
+    };
+  };
+
   // Initialize match simulation
   useEffect(() => {
     if (!fixtureId) return;
@@ -453,7 +484,7 @@ export default function MatchViewer3D({ fixtureId }: MatchViewer3DProps) {
         if (!response.ok) throw new Error('Failed to start simulation');
         
         const initialState = await response.json();
-        setMatchState(initialState);
+        setMatchState(convertToMatch3DState(initialState));
         setIsConnected(true);
 
         // Start real-time simulation loop
@@ -485,9 +516,9 @@ export default function MatchViewer3D({ fixtureId }: MatchViewer3DProps) {
           if (simulationRef.current) {
             clearInterval(simulationRef.current);
           }
-          await handleMatchCompletion(updatedState);
+          await handleMatchCompletion(convertToMatch3DState(updatedState));
         } else {
-          setMatchState(updatedState);
+          setMatchState(convertToMatch3DState(updatedState));
         }
       } catch (error) {
         console.error('Simulation tick error:', error);
@@ -598,7 +629,16 @@ export default function MatchViewer3D({ fixtureId }: MatchViewer3DProps) {
           shadow-camera-bottom={-100}
         />
         
-        <MatchCamera matchState={matchState} />
+        <OrbitControls 
+          enablePan={true}
+          enableZoom={true}
+          enableRotate={true}
+          maxPolarAngle={Math.PI / 2}
+          minDistance={10}
+          maxDistance={200}
+        />
+        
+        <MatchCamera matchState={matchState} cameraMode={cameraMode} />
         <FootballPitch />
         <Ball3D ballState={matchState.ball} />
         <Referee3D position={matchState.referee.position} />
