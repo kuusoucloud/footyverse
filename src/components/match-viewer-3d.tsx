@@ -632,8 +632,9 @@ function Referee3D({ position }: { position: THREE.Vector3 }) {
 }
 
 // Enhanced Match HUD
-function MatchHUD({ matchState, onCameraChange }: { 
+function MatchHUD({ matchState, cameraMode, onCameraChange }: { 
   matchState: Match3DState; 
+  cameraMode: string;
   onCameraChange: (mode: string) => void;
 }) {
   const formatTime = (minute: number, second: number) => {
@@ -908,7 +909,7 @@ export default function MatchViewer3D({ fixtureId }: MatchViewer3DProps) {
 
   return (
     <div className="w-full h-screen bg-gray-900 relative">
-      <MatchHUD matchState={matchState} onCameraChange={setCameraMode} />
+      <MatchHUD matchState={matchState} cameraMode={cameraMode} onCameraChange={setCameraMode} />
       
       {matchCompleted && (
         <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
