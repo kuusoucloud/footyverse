@@ -395,8 +395,10 @@ export type Database = {
           round: number
           scheduled_at: string
           season_id: string | null
+          season_number: number | null
           sequence_order: number | null
           status: string
+          tier: number | null
         }
         Insert: {
           away_team_id?: string | null
@@ -409,8 +411,10 @@ export type Database = {
           round: number
           scheduled_at: string
           season_id?: string | null
+          season_number?: number | null
           sequence_order?: number | null
           status?: string
+          tier?: number | null
         }
         Update: {
           away_team_id?: string | null
@@ -423,8 +427,10 @@ export type Database = {
           round?: number
           scheduled_at?: string
           season_id?: string | null
+          season_number?: number | null
           sequence_order?: number | null
           status?: string
+          tier?: number | null
         }
         Relationships: [
           {
@@ -1045,6 +1051,7 @@ export type Database = {
           injury_status: string | null
           injury_until: string | null
           international_caps: number | null
+          last_match_rating: number | null
           loyalty: number | null
           market_value: number | null
           name: string
@@ -1083,6 +1090,7 @@ export type Database = {
           injury_status?: string | null
           injury_until?: string | null
           international_caps?: number | null
+          last_match_rating?: number | null
           loyalty?: number | null
           market_value?: number | null
           name: string
@@ -1121,6 +1129,7 @@ export type Database = {
           injury_status?: string | null
           injury_until?: string | null
           international_caps?: number | null
+          last_match_rating?: number | null
           loyalty?: number | null
           market_value?: number | null
           name?: string
@@ -1298,6 +1307,62 @@ export type Database = {
         }
         Relationships: []
       }
+      standings: {
+        Row: {
+          created_at: string | null
+          draws: number | null
+          goal_difference: number | null
+          goals_against: number | null
+          goals_for: number | null
+          id: string
+          losses: number | null
+          matches_played: number | null
+          points: number | null
+          season_number: number
+          team_id: string | null
+          tier: number
+          wins: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          draws?: number | null
+          goal_difference?: number | null
+          goals_against?: number | null
+          goals_for?: number | null
+          id?: string
+          losses?: number | null
+          matches_played?: number | null
+          points?: number | null
+          season_number?: number
+          team_id?: string | null
+          tier?: number
+          wins?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          draws?: number | null
+          goal_difference?: number | null
+          goals_against?: number | null
+          goals_for?: number | null
+          id?: string
+          losses?: number | null
+          matches_played?: number | null
+          points?: number | null
+          season_number?: number
+          team_id?: string | null
+          tier?: number
+          wins?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standings_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_formations: {
         Row: {
           away_preference: boolean | null
@@ -1433,6 +1498,7 @@ export type Database = {
           current_wages: number | null
           elo: number
           elo_rating: number | null
+          formations: Json | null
           id: string
           logo_url: string | null
           matches_played_this_season: number | null
@@ -1452,6 +1518,7 @@ export type Database = {
           current_wages?: number | null
           elo?: number
           elo_rating?: number | null
+          formations?: Json | null
           id?: string
           logo_url?: string | null
           matches_played_this_season?: number | null
@@ -1471,6 +1538,7 @@ export type Database = {
           current_wages?: number | null
           elo?: number
           elo_rating?: number | null
+          formations?: Json | null
           id?: string
           logo_url?: string | null
           matches_played_this_season?: number | null
@@ -1865,8 +1933,8 @@ export type Database = {
         Returns: string
       }
       generate_season_fixtures: {
-        Args: { p_season_id: string }
-        Returns: number
+        Args: { p_season_id: string } | { season_num: number }
+        Returns: undefined
       }
       get_active_transfer_windows: {
         Args: Record<PropertyKey, never>
@@ -1909,6 +1977,16 @@ export type Database = {
           wins: number
         }[]
       }
+      get_next_match_for_simulation: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          away_team_id: string
+          fixture_id: string
+          home_team_id: string
+          scheduled_at: string
+          tier: number
+        }[]
+      }
       manage_transfer_windows: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1949,6 +2027,10 @@ export type Database = {
         Args: { tier_num: number }
         Returns: undefined
       }
+      progress_season_and_generate_fixtures: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       proper_round_robin_sequencing: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1985,8 +2067,25 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      update_player_form_after_match: {
+        Args: {
+          assists?: number
+          cards?: number
+          goals?: number
+          match_rating: number
+          player_id: string
+        }
+        Returns: undefined
+      }
       update_team_standings: {
         Args:
+          | {
+              goals_against: number
+              goals_for: number
+              points: number
+              season_number?: number
+              team_id: string
+            }
           | {
               p_drawn: number
               p_goals_against: number
