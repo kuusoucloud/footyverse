@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getActiveSimulation } from '../../start-3d-simulation/route';
+import { getActiveSimulation } from '@/lib/simulation-manager';
 
 export async function GET(
   request: NextRequest,

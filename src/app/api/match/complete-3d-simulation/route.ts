@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { removeActiveSimulation } from '@/lib/simulation-manager';
 
 export async function POST(request: NextRequest) {
   try {
@@ -90,6 +91,9 @@ export async function POST(request: NextRequest) {
       .from('fixtures')
       .update({ status: 'finished' })
       .eq('id', fixtureId);
+
+    // Remove simulation from memory
+    removeActiveSimulation(fixtureId);
 
     // Check if season should progress
     const { data: remainingFixtures } = await supabase
